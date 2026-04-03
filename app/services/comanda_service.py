@@ -1,20 +1,20 @@
-from app.repository.comanda_repository import ComandaRepository
+from app.repository.comanda_repository import CommandsRepository
 
-def create_comanda(data: dict):
-    return ComandaRepository.insert(data)
+def create_commands(data: dict):
+    return CommandsRepository.insert(data)
 
-def list_comandas(page:int, page_size:int):
-    return ComandaRepository.list(page, page_size)
+def list_commands(page:int, page_size:int):
+    return CommandsRepository.list(page, page_size)
 
-def search_comanda(id: int):
-    return ComandaRepository.get(id)
+def search_commands(id: int):
+    return CommandsRepository.get(id)
 
-def update_comanda(id: int, data: dict):
-    return ComandaRepository.update(id, data)
+def update_commands(id: int, data: dict):
+    return CommandsRepository.update(id, data)
 
-def delete_comanda(id: int):
-    return ComandaRepository.delete(id)
+def delete_commands(id: int):
+    return CommandsRepository.delete(id)
 
-def count_comandas():
-    return ComandaRepository.count()
+def count_commands():
+    return CommandsRepository.count()
 

@@ -1,14 +1,14 @@
 from pydantic import BaseModel
 
-class CreateComanda (BaseModel):
+class CreateCommands (BaseModel):
     clientId: int
     tableId: int
 
-class UpdateComanda (BaseModel):
+class UpdateCommands (BaseModel):
     status: str | None = None
     fullValue: float | None = None
 
-class Comanda(BaseModel):
+class Commands(BaseModel):
     id: int
     clientId: int
     tableId: int
