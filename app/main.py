@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from app.domains.comanda import comanda_controller
 from app.domains.produto import produto_controller
 from app.domains.shared.export import export_controller
+from app.domains.shared.export import export_product_controller
 from app.domains.shared.hash import hash_controller
 
 app = FastAPI(
@@ -13,6 +14,7 @@ app = FastAPI(
 app.include_router(comanda_controller.router)
 app.include_router(produto_controller.router)
 app.include_router(export_controller.router)
+app.include_router(export_product_controller.router)
 app.include_router(hash_controller.router)
 
 if __name__ == "__main__":
