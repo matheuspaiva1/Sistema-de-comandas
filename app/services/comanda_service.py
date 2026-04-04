@@ -12,7 +12,7 @@ def search_commands(id: int):
 def update_commands(id: int, data: dict):
     return CommandsRepository.update(id, data)
 
-def delete_commands(id: int):
+def delete_commands(id: int) -> bool:
     return CommandsRepository.delete(id)
 
 def count_commands():

@@ -15,6 +15,10 @@ def create(comanda: CreateCommands):
 def list(page: int = 1, page_size: int = 10):
     return comanda_service.list_commands(page, page_size)
 
+@router.get("/count")
+def count():
+    return {"total": comanda_service.count_commands()}
+
 @router.get("/{id}")
 def search(id: int):
     result = comanda_service.search_commands(id)
@@ -33,9 +37,6 @@ def update(id: int, comanda: UpdateCommands):
 
 @router.delete("/{id}")
 def delete(id: int):
-    comanda_service.delete_commands(id)
+    if not comanda_service.delete_commands(id):
+        raise HTTPException(status_code=404, detail="Comanda não encontrada")
     return {"detail": "Comanda deletada com sucesso"}
-
-@router.get("/count")
-def count():
-    return {"Total: ": comanda_service.count_commands()}
