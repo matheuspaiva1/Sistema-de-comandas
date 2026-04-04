@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
-from app.services.export_service import ExportService
-from app.repository.comanda_repository import ComandaRepository
+from app.domains.shared.export.export_service import ExportService
+from app.domains.comanda.comanda_repository import ComandaRepository
 
 router = APIRouter(prefix="/export", tags=["Export"])
 

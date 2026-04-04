@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import Literal
-from app.services.hash_service import gerar_hash
+from app.domains.shared.utils.hash_service import gerar_hash
 
 router = APIRouter(prefix="/hash", tags=["Hash"])
 

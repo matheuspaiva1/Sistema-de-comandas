@@ -1,4 +1,4 @@
-from app.repository.comanda_repository import ComandaRepository
+from app.domains.comanda.comanda_repository import ComandaRepository
 
 comanda_repository = ComandaRepository()
 

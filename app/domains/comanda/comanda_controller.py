@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from app.schemas.comanda_schema import (
+from app.domains.comanda.comanda_schema import (
     CreateCommands,
     UpdateCommands,
 )
