@@ -8,3 +8,10 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Data directory and persistence files
+data/
+*.parquet
+*.seq
+_delta_log/
+_symlink_format_version
