@@ -3,7 +3,7 @@ from app.domains.comanda.comanda_schema import (
     CreateCommands,
     UpdateCommands,
 )
-from app.services import comanda_service
+from app.domains.comanda import comanda_service
 
 router = APIRouter(prefix="/comandas", tags=["Comandas"])
 

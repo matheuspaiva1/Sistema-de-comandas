@@ -1,5 +1,7 @@
 from fastapi import FastAPI
-from app.api import comanda_controller, export_controller, hash_controller
+from app.domains.comanda import comanda_controller
+from app.domains.shared.export import export_controller
+from app.domains.shared.hash import hash_controller
 
 app = FastAPI(
     title="Sistemas de comandas + Delta Lake",
