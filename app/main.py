@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from app.api import comanda_controller, export_controller, hash_controller
 
-app = FastAPI(title="Sistema de Comandas API", version="1.0.0")
+app = FastAPI(
+    title="Sistemas de comandas + Delta Lake",
+    version="1.0.0",
+    description="API refatorada com o motor puro python `deltalake`, operações CRUD e auto-increment via .seq",
+)
 
 app.include_router(comanda_controller.router)
 app.include_router(export_controller.router)
@@ -9,4 +13,5 @@ app.include_router(hash_controller.router)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    uvicorn.run(app, host="[IP_ADDRESS]", port=8000)
