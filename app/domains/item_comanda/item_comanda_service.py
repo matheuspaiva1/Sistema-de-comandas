@@ -34,8 +34,8 @@ def create_item(data: dict) -> dict:
 
     return _item_repo.insert(payload)
 
-def list_items(page: int, page_size: int, comanda_id: int | None = None) -> list[dict]:
-    return _item_repo.list(page, page_size, comanda_id=comanda_id)
+def list_items(page: int, page_size: int) -> list[dict]:
+    return _item_repo.list(page, page_size)
 
 def get_item(record_id: int) -> dict | None:
     return _item_repo.get(record_id)

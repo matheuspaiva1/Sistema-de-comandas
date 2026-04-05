@@ -45,9 +45,8 @@ Response:
 def list_items(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
-    comanda_id: int | None = Query(None, ge=1),
 ):
-    return item_comanda_service.list_items(page, page_size, comanda_id=comanda_id)
+    return item_comanda_service.list_items(page, page_size)
 
 
 @router.get(

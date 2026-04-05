@@ -113,23 +113,20 @@ class ItemComandaRepository:
         
         try:
             table = dt.to_pyarrow_table()
-            mask = pa.compute.equal(table["id"], record_id)
+            mask = pa.compute.not_equal(table["id"], record_id)
             filtered_table = table.filter(mask)
-
+            
             if filtered_table.num_rows == table.num_rows:
                 return False
-
-            df = table.to_pandas()
-            df = df[df["id"] != record_id]
-            updated_table = pa.Table.from_pandas(df, preserve_index=False)
-            write_deltalake(self.table_path, updated_table, mode="overwrite")
+            
+            write_deltalake(self.table_path, filtered_table, mode="overwrite")
             return True
 
         except Exception as e:
             print(f"Erro ao deletar item da comanda: {e}")
             return False
 
-    def count(self, comanda_id: int | None = None) -> int:
+    def count(self) -> int:
         dt = self._get_table()
         return dt.to_pyarrow_table().num_rows
 
