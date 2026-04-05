@@ -1,4 +1,4 @@
-from app.repository.produto_repository import ProdutoRepository
+from app.domains.produto.produto_repository import ProdutoRepository
 
 product_repo = ProdutoRepository()
 

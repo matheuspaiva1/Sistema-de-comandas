@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.domains.produto.produto_schema import CreateProduct, UpdateProduct
-from app.domains.produto.produto_service import produto_service
+from app.domains.produto import produto_service
 
 router = APIRouter(prefix="/produtos", tags=["Produtos"])
 
