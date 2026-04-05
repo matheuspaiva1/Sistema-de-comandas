@@ -62,8 +62,8 @@ Response:
 """,
     response_description="Total de itens de comanda retornado",
 )
-def count(comanda_id: int | None = Query(None, ge=1)):
-    return {"total": item_comanda_service.count_items(comanda_id=comanda_id)}
+def count():
+    return {"total": item_comanda_service.count_items()}
 
 
 @router.get(

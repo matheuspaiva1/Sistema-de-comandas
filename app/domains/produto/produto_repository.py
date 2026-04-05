@@ -16,7 +16,11 @@ class ProdutoRepository:
 		self._garantir_sequencia()
 
 	def _garantir_tabela(self):
-		if not os.path.exists(os.path.join(self.table_path, "_delta_log")):
+		"""Inicializa a tabela Delta se ela não existir ou estiver corrompida."""
+		log_dir = os.path.join(self.table_path, "_delta_log")
+		if not os.path.exists(log_dir) or not os.listdir(log_dir):
+			if not os.path.exists(self.table_path):
+				os.makedirs(self.table_path, exist_ok=True)
 			schema = pa.schema(
 				[
 					("id", pa.int64()),
