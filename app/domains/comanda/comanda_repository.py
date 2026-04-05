@@ -22,10 +22,13 @@ class ComandaRepository:
                 os.makedirs(self.table_path, exist_ok=True)
             schema = pa.schema([
                 ("id", pa.int64()),
-                ("clientId", pa.int64()),
-                ("tableId", pa.int64()),
+                ("numero", pa.int64()),
+                ("data_abertura", pa.timestamp('us')),
+                ("data_fechamento", pa.timestamp('us')),
+                ("cliente_id", pa.int64()),
+                ("mesa_id", pa.int64()),
                 ("status", pa.string()),
-                ("fullValue", pa.float64())
+                ("valor_total", pa.float64())
             ])
 
             # Cria tabela vazia com o schema
@@ -53,13 +56,6 @@ class ComandaRepository:
 
     def insert(self, data: dict) -> dict:
         data["id"] = self._gerar_id()
-        
-        # Valores padrão
-        if "status" not in data:
-            data["status"] = "aberta"
-        if "fullValue" not in data:
-            data["fullValue"] = 0.0
-
         table = pa.Table.from_pylist([data])
         write_deltalake(self.table_path, table, mode="append")
         return data

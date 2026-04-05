@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from app.domains.comanda.comanda_schema import (
-    CreateCommands,
-    UpdateCommands,
+    CreateComandaSchema,
+    UpdateComandaSchema,
 )
 from app.domains.comanda import comanda_service
 
@@ -19,8 +19,8 @@ Response:
 """,
     response_description="Comanda criada com sucesso",
 )
-def create(comanda: CreateCommands):
-    return comanda_service.create_commands(comanda.model_dump())
+def create(comanda: CreateComandaSchema):
+    return comanda_service.create_commands(comanda)
 
 @router.get(
     "",
@@ -86,7 +86,7 @@ Response:
 """,
     response_description="Comanda atualizada",
 )
-def update(id: int, comanda: UpdateCommands):
+def update(id: int, comanda: UpdateComandaSchema):
     result = comanda_service.update_commands(id, comanda.model_dump(exclude_none=True))
     if not result:
         raise HTTPException(status_code=404, detail="Comanda não encontrada")
