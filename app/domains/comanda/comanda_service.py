@@ -1,4 +1,3 @@
-from app.domains.item_comanda.item_comanda_schema import ItemComandaResponse
 from datetime import datetime
 from app.domains.comanda.comanda_repository import ComandaRepository
 from app.domains.comanda.comanda_schema import CreateComandaSchema
@@ -66,7 +65,6 @@ def search_commands(id: int):
     if not comanda:
         raise NotFoundError("Comanda não encontrada")
     
-    # Busca itens associados
     todos_itens = item_comanda_service.list_items(1, 1000)
     comanda["itens"] = [i for i in todos_itens if i["comanda_id"] == id]
     
@@ -80,7 +78,6 @@ def update_commands(id: int, data: dict):
     if not result:
         raise NotFoundError("Comanda não encontrada")
     
-    # Retorna com itens carregados
     return search_commands(id)
 
 def delete_commands(id: int) -> bool:

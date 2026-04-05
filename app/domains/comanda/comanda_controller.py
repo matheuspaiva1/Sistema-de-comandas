@@ -9,6 +9,7 @@ router = APIRouter(prefix="/comandas", tags=["Comandas"])
 
 @router.post(
     "",
+    status_code=201,
     summary="Criar comanda",
     description="""
 Request:
