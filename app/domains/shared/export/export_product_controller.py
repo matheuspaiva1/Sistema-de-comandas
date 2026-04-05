@@ -8,7 +8,18 @@ from io import BytesIO
 
 router = APIRouter(prefix="/export/produtos", tags=["Export Produtos"])
 
-@router.get("/csv")
+@router.get(
+    "/csv",
+    summary="Exportar produtos em CSV",
+    description="""
+Request:
+- Sem body e sem parâmetros.
+
+Response:
+- Retorna arquivo CSV em stream com os produtos.
+""",
+    response_description="Arquivo CSV de produtos gerado",
+)
 def export_csv():
     def generator():
         buffer = io.StringIO()
@@ -39,7 +50,18 @@ def export_csv():
         media_type="text/csv",
     )
 
-@router.get("/csv-zip")
+@router.get(
+    "/csv-zip",
+    summary="Exportar produtos em ZIP",
+    description="""
+Request:
+- Sem body e sem parâmetros.
+
+Response:
+- Retorna arquivo ZIP em stream contendo `produtos.csv`.
+""",
+    response_description="Arquivo ZIP de produtos gerado",
+)
 def export_csv_zip():
     def generator():
         buffer = BytesIO()
