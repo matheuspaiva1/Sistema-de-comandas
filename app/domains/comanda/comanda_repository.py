@@ -31,7 +31,6 @@ class ComandaRepository:
                 ("valor_total", pa.float64())
             ])
 
-            # Cria tabela vazia com o schema
             tabela_vazia = pa.Table.from_batches([], schema=schema)
             write_deltalake(self.table_path, tabela_vazia, mode="append")
 
@@ -54,6 +53,8 @@ class ComandaRepository:
             f.truncate()
         return new_id
 
+    # --- Métodos de CRUD ---
+    
     def insert(self, data: dict) -> dict:
         data["id"] = self._gerar_id()
         table = pa.Table.from_pylist([data])
@@ -62,23 +63,43 @@ class ComandaRepository:
 
     def list(self, page: int, page_size: int) -> list[dict]:
         dt = self._get_table()
-        table = dt.to_pyarrow_table()
         
-        start = (page - 1) * page_size
-        paged_table = table.slice(start, page_size) if start < table.num_rows else table.slice(0, 0)
-        return paged_table.to_pylist()
+        # to_batches() pertence ao pyarrow.Dataset, não ao DeltaTable
+        batches = dt.to_pyarrow_dataset().to_batches(batch_size=page_size)
+        
+        start_index = (page - 1) * page_size
+        end_index = start_index + page_size
+        
+        rows = []
+        current_offset = 0
+        
+        for batch in batches:
+            batch_len = batch.num_rows
+            next_offset = current_offset + batch_len
+            
+            if next_offset > start_index:
+                local_start = max(0, start_index - current_offset)
+                local_end = min(batch_len, end_index - current_offset)
+                
+                if local_start < local_end:
+                    sliced_batch = batch.slice(local_start, local_end - local_start)
+                    rows.extend(pa.Table.from_batches([sliced_batch]).to_pylist())
+            
+            current_offset = next_offset
+            if current_offset >= end_index:
+                break
+                
+        return rows
 
     def get(self, id: int) -> dict | None:
         dt = self._get_table()
-        table = dt.to_pyarrow_table()
+        # Filtro pushdown para carregar apenas a linha desejada
+        table = dt.to_pyarrow_table(filters=[("id", "=", id)])
         
-        mask = pa.compute.equal(table["id"], id)
-        filtered_table = table.filter(mask)
-        
-        if filtered_table.num_rows == 0:
+        if table.num_rows == 0:
             return None
         
-        return filtered_table.to_pylist()[0]
+        return table.to_pylist()[0]
 
     def update(self, id: int, data: dict) -> dict | None:
         dt = self._get_table()
@@ -121,14 +142,15 @@ class ComandaRepository:
 
     def count(self) -> int:
         dt = self._get_table()
-        return dt.to_pyarrow_table().num_rows
+        # Carrega apenas metadados/estatísticas sem ler colunas de dados
+        return dt.to_pyarrow_table(columns=[]).num_rows
 
     def vacuum(self, retention_hours: int = 168):
         """Compacta e limpa versões antigas do Delta Lake."""
         dt = self._get_table()
         dt.vacuum(retention_hours=retention_hours, enforce_retention_duration=False)
 
-    def iter_batches(self):
-        """Itera sobre os lotes da tabela."""
+    def iter_batches(self, batch_size: int = 1000):
+        """Itera sobre os lotes da tabela sem carregar tudo na memória."""
         dt = self._get_table()
-        return dt.to_pyarrow_table().to_batches()
+        return dt.to_pyarrow_dataset().to_batches(batch_size=batch_size)
