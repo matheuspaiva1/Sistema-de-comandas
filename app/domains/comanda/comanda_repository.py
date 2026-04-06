@@ -64,7 +64,6 @@ class ComandaRepository:
     def list(self, page: int, page_size: int) -> list[dict]:
         dt = self._get_table()
         
-        # to_batches() pertence ao pyarrow.Dataset, não ao DeltaTable
         batches = dt.to_pyarrow_dataset().to_batches(batch_size=page_size)
         
         start_index = (page - 1) * page_size
@@ -93,7 +92,6 @@ class ComandaRepository:
 
     def get(self, id: int) -> dict | None:
         dt = self._get_table()
-        # Filtro pushdown para carregar apenas a linha desejada
         table = dt.to_pyarrow_table(filters=[("id", "=", id)])
         
         if table.num_rows == 0:
@@ -108,18 +106,22 @@ class ComandaRepository:
             mask = pa.compute.equal(table["id"], id)
             if table.filter(mask).num_rows == 0:
                 return None
-            
-            df = table.to_pandas()
-            for key, value in data.items():
-                if key in df.columns:
-                    df.loc[df["id"] == id, key] = value
-            
-            updated_table = pa.Table.from_pandas(df, preserve_index=False)
+
+            columns = {}
+            for col_name in table.schema.names:
+                col = table[col_name]
+                if col_name in data:
+                    new_val = data[col_name]
+                    new_col_array = pa.array([new_val] * table.num_rows, type=col.type)
+                    col = pa.compute.if_else(mask, new_col_array, col)
+                columns[col_name] = col
+
+            updated_table = pa.table(columns, schema=table.schema)
             write_deltalake(self.table_path, updated_table, mode="overwrite")
-            
-            updated_row = df[df["id"] == id].to_dict('records')[0]
+
+            updated_row = updated_table.filter(mask).to_pylist()[0]
             return updated_row
-            
+
         except Exception as e:
             print(f"Erro ao atualizar: {e}")
             return None
@@ -141,8 +143,8 @@ class ComandaRepository:
             return False
 
     def count(self) -> int:
+        """Contagem da quantidade de registros - lê apenas metadados/estatísticas sem ler colunas de dados"""
         dt = self._get_table()
-        # Carrega apenas metadados/estatísticas sem ler colunas de dados
         return dt.to_pyarrow_table(columns=[]).num_rows
 
     def vacuum(self, retention_hours: int = 168):

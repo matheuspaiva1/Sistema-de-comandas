@@ -41,13 +41,11 @@ def create_commands(schema: CreateComandaSchema):
         itens_criados.append(item_criado)
         total_acumulado += float(item_criado["valor_total"])
         
-    # Atualiza o valor_total da comanda no banco para persistência
     if total_acumulado > 0:
         updated_comanda = comanda_repository.update(comanda_id, {"valor_total": total_acumulado})
         if updated_comanda:
             comanda = updated_comanda
         
-    # Adiciona os itens criados ao objeto de retorno
     comanda["itens"] = itens_criados
     return comanda
 
@@ -55,7 +53,7 @@ def list_commands(page: int, page_size: int):
     comandas = comanda_repository.list(page, page_size)
     
     for comanda in comandas:
-        todos_itens = item_comanda_service.list_items(1, 1000) # Busca generosa
+        todos_itens = item_comanda_service.list_items(1, 1000)
         comanda["itens"] = [i for i in todos_itens if i["comanda_id"] == comanda["id"]]
         
     return comandas
