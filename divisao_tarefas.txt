@@ -1,0 +1,64 @@
+DIVISÃO DE TAREFAS — ENTIDADE COMANDA
+
+==================================================
+DESENVOLVEDOR 1 (Miqueias Bento) — CAMADA DE PERSISTÊNCIA (COMANDAS)
+==================================================
+
+[CONCLUÍDO] Implementar a classe de repositório da entidade principal
+- Implementado em: app/domains/comanda/comanda_repository.py
+
+[CONCLUÍDO] Implementar controle de ID via arquivo .seq
+- Implementado em: app/domains/comanda/comanda_repository.py (_gerar_id, _sequencia_existe)
+- Arquivo de sequência utilizado: data/comandas.seq
+
+[CONCLUÍDO] CRUD completo
+- Métodos implementados: insert, get, list, update, delete
+- Arquivo: app/domains/comanda/comanda_repository.py
+
+[CONCLUÍDO] Paginação real
+- Paginação por page/page_size no método list.
+
+[CONCLUÍDO] count
+- Método count implementado em app/domains/comanda/comanda_repository.py
+
+[CONCLUÍDO] vacuum
+- Método vacuum implementado em app/domains/comanda/comanda_repository.py
+
+===============================================
+DESENVOLVEDOR 2 (Matheus Paiva) — API REST + VALIDAÇÃO (COMANDAS)
+===============================================
+
+[CONCLUÍDO] Modelos Pydantic (Create, Update, Response)
+- Implementado em: app/domains/comanda/comanda_schema.py
+
+[CONCLUÍDO] Implementação dos endpoints REST (CRUD, paginação, count)
+- Endpoints de comandas em: app/domains/comanda/comanda_controller.py
+
+[CONCLUÍDO] Integração com o repositório
+- Fluxo controller/service/repository implementado para comanda.
+- Arquivos principais: app/domains/comanda/comanda_controller.py,
+  app/domains/comanda/comanda_service.py, app/domains/comanda/comanda_repository.py
+
+[CONCLUÍDO] Endpoint de hash
+- Implementado em: app/domains/shared/hash/hash_controller.py
+- Lógica: app/domains/shared/hash/hash_service.py
+
+[CONCLUÍDO] Estruturação do projeto (organização de módulos)
+- Estrutura modular por domínio em app/domains/* e compartilhados em app/domains/shared/*
+- Registro de rotas centralizado em app/main.py
+
+===========================================================
+DESENVOLVEDOR 3 (Debora Viana) — EXPORTAÇÃO, CARGA INICIAL E QUALIDADE
+===========================================================
+
+[CONCLUÍDO] Script de carga com Faker (1.000 registros realistas)
+- scripts/seed.py com geração de 1000 registros de comandas.
+
+[CONCLUÍDO] Endpoint de exportação CSV via streaming
+- Comandas: app/domains/shared/export/export_controller.py (/export/csv)
+
+[CONCLUÍDO] Endpoint de exportação CSV compactado
+- Comandas: app/domains/shared/export/export_controller.py (/export/zip)
+
+[CONCLUÍDO] Escrita do arquivo divisao_tarefas.txt
+- Arquivo atualizado para foco exclusivo na entidade comanda.
