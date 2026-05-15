@@ -21,3 +21,6 @@ _symlink_format_version
 
 # Anotacoes
 anotacoes/
+
+# Banco de Dados
+comandas.db
