@@ -1,6 +1,7 @@
 from typing import Sequence
 
 from fastapi import APIRouter, status
+from fastapi_pagination import Page
 
 from app.api.deps import SessionDep
 from app.models.product import Product
@@ -19,8 +20,8 @@ async def create_product(data: ProductCreate, session: SessionDep) -> Product:
     return await service.create_product(data)
 
 
-@router.get("/", response_model=list[ProductRead])
-async def list_products(session: SessionDep) -> Sequence[Product]:
+@router.get("/", response_model=Page[ProductRead])
+async def list_products(session: SessionDep):
     service = ProductService(session)
     return await service.list_products()
 

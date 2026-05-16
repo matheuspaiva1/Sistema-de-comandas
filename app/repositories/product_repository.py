@@ -3,6 +3,8 @@ from typing import Optional, Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from fastapi_pagination.ext.sqlmodel import paginate
+
 from app.models.product import Product
 from app.schemas.product import ProductCreate, ProductUpdate
 
@@ -22,9 +24,8 @@ class ProductRepository:
     async def get_by_id(self, product_id: int) -> Optional[Product]:
         return await self.session.get(Product, product_id)
 
-    async def list_all(self) -> Sequence[Product]:
-        result = await self.session.exec(select(Product))
-        return result.all()
+    async def list_all(self):
+        return await paginate(self.session, select(Product))
 
     async def update(self, product: Product, data: ProductUpdate) -> Product:
         update_data = data.model_dump(exclude_unset=True)

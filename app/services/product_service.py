@@ -18,11 +18,9 @@ class ProductService:
         self.repo = ProductRepository(session)
 
     async def create_product(self, data: ProductCreate) -> Product:
-        # Exemplo de uso de EntityAlreadyExistsException
-        # Nota: Idealmente o repositório teria um método get_by_name
         return await self.repo.create(data)
 
-    async def list_products(self) -> Sequence[Product]:
+    async def list_products(self):
         return await self.repo.list_all()
 
     async def get_product(self, product_id: int) -> Product:
@@ -37,7 +35,7 @@ class ProductService:
 
     async def delete_product(self, product_id: int) -> None:
         product = await self.get_product(product_id)
-        # Exemplo de onde poderia haver uma trava de negócio
-        # if await self.repo.has_order_items(product_id):
-        #     raise CantDeleteEntityException("Produto", product_id, "Existem itens de comanda associados")
+        # Exemplo de onde poderia haver uma trava de negócio (pode ser implementada posteriormente a comanda ter itens)
+        # Lança um CantDeleteEntityException
+        
         await self.repo.delete(product)

@@ -85,7 +85,6 @@ def register_error_handlers(app: FastAPI):
 
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception):
-        # Em produção, você não iria querer expor o erro real, mas para o trabalho ajuda
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "Erro interno do servidor"},
