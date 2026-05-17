@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 from app.api.deps import SessionDep
-from app.models.product import Product, CategoriaEnum
+from app.models.product import Product, CategoryEnum
 from app.models.document import Document
 from app.schemas.product import ProductRead
 from app.schemas.document import DocumentRead
@@ -28,36 +28,36 @@ async def get_products_statistics(session: SessionDep):
 
     category_result = await session.execute(
         select(
-            Product.categoria,
-            func.count(Product.id).label("quantidade"),
-            func.avg(Product.preco).label("preco_medio"),
-            func.min(Product.preco).label("preco_minimo"),
-            func.max(Product.preco).label("preco_maximo"),
-        ).group_by(Product.categoria)
+            Product.category,
+            func.count(Product.id).label("quantity"),
+            func.avg(Product.price).label("avg_price"),
+            func.min(Product.price).label("min_price"),
+            func.max(Product.price).label("max_price"),
+        ).group_by(Product.category)
     )
     categories = category_result.all()
 
     price_result = await session.execute(
         select(
-            func.avg(Product.preco).label("preco_medio"),
-            func.min(Product.preco).label("preco_minimo"),
-            func.max(Product.preco).label("preco_maximo"),
+            func.avg(Product.price).label("avg_price"),
+            func.min(Product.price).label("min_price"),
+            func.max(Product.price).label("max_price"),
         )
     )
     price_stats = price_result.one()
 
     return {
-        "total_produtos": total_count,
-        "preco_medio_geral": float(price_stats[0]) if price_stats[0] else 0,
-        "preco_minimo_geral": float(price_stats[1]) if price_stats[1] else 0,
-        "preco_maximo_geral": float(price_stats[2]) if price_stats[2] else 0,
-        "por_categoria": [
+        "total_products": total_count,
+        "average_price_overall": float(price_stats[0]) if price_stats[0] else 0,
+        "min_price_overall": float(price_stats[1]) if price_stats[1] else 0,
+        "max_price_overall": float(price_stats[2]) if price_stats[2] else 0,
+        "by_category": [
             {
-                "categoria": cat.categoria.value,
-                "quantidade": cat.quantidade,
-                "preco_medio": float(cat.preco_medio) if cat.preco_medio else 0,
-                "preco_minimo": float(cat.preco_minimo) if cat.preco_minimo else 0,
-                "preco_maximo": float(cat.preco_maximo) if cat.preco_maximo else 0,
+                "category": cat.category.value,
+                "quantity": cat.quantity,
+                "average_price": float(cat.avg_price) if cat.avg_price else 0,
+                "min_price": float(cat.min_price) if cat.min_price else 0,
+                "max_price": float(cat.max_price) if cat.max_price else 0,
             }
             for cat in categories
         ],
@@ -71,7 +71,7 @@ async def get_most_expensive_products(
 ):
     """Retorna os produtos mais caros."""
     result = await session.execute(
-        select(Product).order_by(Product.preco.desc()).limit(limit)
+        select(Product).order_by(Product.price.desc()).limit(limit)
     )
     return [ProductRead.model_validate(p) for p in result.scalars().all()]
 
@@ -83,7 +83,7 @@ async def get_cheapest_products(
 ):
     """Retorna os produtos mais baratos."""
     result = await session.execute(
-        select(Product).order_by(Product.preco.asc()).limit(limit)
+        select(Product).order_by(Product.price.asc()).limit(limit)
     )
     return [ProductRead.model_validate(p) for p in result.scalars().all()]
 
@@ -91,31 +91,31 @@ async def get_cheapest_products(
 @router.get("/products/filtered", response_model=Page[ProductRead])
 async def list_products_advanced_filter(
     session: SessionDep,
-    categoria: Optional[CategoriaEnum] = Query(None),
+    category: Optional[CategoryEnum] = Query(None),
     min_price: Optional[float] = Query(None, ge=0),
     max_price: Optional[float] = Query(None, ge=0),
-    ativo: Optional[bool] = Query(None),
+    active: Optional[bool] = Query(None),
     search: Optional[str] = Query(None, max_length=100),
-    sort_by: Optional[str] = Query("nome", pattern="^(nome|preco|categoria)$"),
+    sort_by: Optional[str] = Query("name", pattern="^(name|price|category)$"),
     order: Optional[str] = Query("asc", pattern="^(asc|desc)$"),
 ):
     """Listagem com múltiplos filtros e ordenação."""
     filters = []
 
-    if categoria:
-        filters.append(Product.categoria == categoria)
+    if category:
+        filters.append(Product.category == category)
     if min_price is not None:
-        filters.append(Product.preco >= min_price)
+        filters.append(Product.price >= min_price)
     if max_price is not None:
-        filters.append(Product.preco <= max_price)
-    if ativo is not None:
-        filters.append(Product.ativo == ativo)
+        filters.append(Product.price <= max_price)
+    if active is not None:
+        filters.append(Product.active == active)
     if search:
         search_term = f"%{search}%"
         filters.append(
             or_(
-                Product.nome.ilike(search_term),
-                Product.descricao.ilike(search_term),
+                Product.name.ilike(search_term),
+                Product.description.ilike(search_term),
             )
         )
 
@@ -124,10 +124,10 @@ async def list_products_advanced_filter(
         statement = statement.where(and_(*filters))
 
     sort_column = {
-        "nome": Product.nome,
-        "preco": Product.preco,
-        "categoria": Product.categoria,
-    }.get(sort_by, Product.nome)
+        "name": Product.name,
+        "price": Product.price,
+        "category": Product.category,
+    }.get(sort_by, Product.name)
 
     statement = statement.order_by(
         sort_column.desc() if order == "desc" else sort_column.asc()
@@ -149,11 +149,11 @@ async def list_products_with_documents(session: SessionDep):
     return [
         {
             "id": p.id,
-            "nome": p.nome,
-            "categoria": p.categoria.value,
-            "preco": p.preco,
-            "documentos_count": len(p.documents),
-            "documentos": [
+            "name": p.name,
+            "category": p.category.value,
+            "price": p.price,
+            "documents_count": len(p.documents),
+            "documents": [
                 {
                     "id": str(d.id),
                     "original_filename": d.original_filename,
@@ -198,12 +198,12 @@ async def get_documents_statistics(session: SessionDep):
     )
 
     return {
-        "total_documentos": total_docs,
-        "tamanho_total_bytes": size_data[0] or 0,
-        "tamanho_medio_bytes": float(size_data[1]) if size_data[1] else 0,
-        "tamanho_maximo_bytes": float(size_data[2]) if size_data[2] else 0,
-        "por_tipo": [
-            {"content_type": row[0], "quantidade": row[1]}
+        "total_documents": total_docs,
+        "total_size_bytes": size_data[0] or 0,
+        "average_size_bytes": float(size_data[1]) if size_data[1] else 0,
+        "max_size_bytes": float(size_data[2]) if size_data[2] else 0,
+        "by_type": [
+            {"content_type": row[0], "quantity": row[1]}
             for row in type_result.all()
         ],
     }
@@ -227,10 +227,10 @@ async def get_product_documents_stats(product_id: int, session: SessionDep):
 
     return {
         "product_id": product_id,
-        "product_nome": product.nome,
-        "total_documentos": stats[0],
-        "tamanho_total_bytes": stats[1] or 0,
-        "tamanho_medio_bytes": float(stats[2]) if stats[2] else 0,
+        "product_name": product.name,
+        "total_documents": stats[0],
+        "total_size_bytes": stats[1] or 0,
+        "average_size_bytes": float(stats[2]) if stats[2] else 0,
     }
 
 

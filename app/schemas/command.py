@@ -22,7 +22,7 @@ class CommandUpdate(SQLModel):
 
 class CommandRead(SQLModel):
     id: int
-    code: str
+    code: int
     client_id: int
     status: CommandStatus
     opened_at: datetime

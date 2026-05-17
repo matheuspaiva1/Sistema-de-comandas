@@ -11,7 +11,6 @@ class ItemCommand(SQLModel, table=True):
     product_id: int = Field(foreign_key="products.id", index=True)
     quantity: int = Field(gt=0)
     unit_price: float = Field(gt=0)
-    total_price: float = Field(default=0.0)
 
     command: "Command" = Relationship(back_populates="items")
     product: "Product" = Relationship(back_populates="item_commands")

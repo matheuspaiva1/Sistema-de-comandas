@@ -4,7 +4,7 @@ from typing import Optional
 from sqlmodel import Field, SQLModel, Relationship
 
 
-class CategoriaEnum(str, enum.Enum):
+class CategoryEnum(str, enum.Enum):
     BEBIDA = "BEBIDA"
     PRATO_PRINCIPAL = "PRATO_PRINCIPAL"
     ENTRADA = "ENTRADA"
@@ -17,11 +17,11 @@ class Product(SQLModel, table=True):
     __tablename__ = "products"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    nome: str = Field(max_length=100)
-    descricao: str = Field(max_length=500)
-    categoria: CategoriaEnum
-    preco: float
-    ativo: bool = Field(default=True)
+    name: str = Field(max_length=100)
+    description: str = Field(max_length=500)
+    category: CategoryEnum
+    price: float
+    active: bool = Field(default=True)
 
     documents: list["Document"] = Relationship(back_populates="product")
     item_commands: list["ItemCommand"] = Relationship(back_populates="product")

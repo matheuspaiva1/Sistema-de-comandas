@@ -1,7 +1,6 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional
-from uuid import uuid4
 
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -16,7 +15,8 @@ class Command(SQLModel, table=True):
     __tablename__ = "commands"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    code: str = Field(default_factory=lambda: uuid4().hex[:10].upper(), index=True)
+    # switched to integer code for comandas; default to unix timestamp seconds
+    code: int = Field(default_factory=lambda: int(datetime.utcnow().timestamp()), index=True)
     client_id: int = Field(foreign_key="clients.id", index=True)
     status: CommandStatus = Field(default=CommandStatus.ABERTA, index=True)
     opened_at: datetime = Field(default_factory=datetime.utcnow)

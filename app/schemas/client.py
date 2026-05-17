@@ -4,20 +4,23 @@ from sqlmodel import SQLModel
 
 
 class ClientCreate(SQLModel):
-    nome: str
-    telefone: str | None = None
+    name: str
+    phone: str | None = None
     email: str | None = None
+    tax_id: str | None = None
 
 
 class ClientUpdate(SQLModel):
-    nome: str | None = None
-    telefone: str | None = None
+    name: str | None = None
+    phone: str | None = None
     email: str | None = None
+    tax_id: str | None = None
 
 
 class ClientRead(SQLModel):
     id: int
-    nome: str
-    telefone: str | None = None
+    name: str
+    phone: str | None = None
     email: str | None = None
+    tax_id: str | None = None
     created_at: datetime

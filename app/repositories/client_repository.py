@@ -22,9 +22,9 @@ class ClientRepository:
         return await self.session.get(Client, client_id)
 
     async def list_all(self, search: str | None = None):
-        statement = select(Client).order_by(Client.nome.asc())
+        statement = select(Client).order_by(Client.name.asc())
         if search:
-            statement = statement.where(Client.nome.ilike(f"%{search}%"))
+            statement = statement.where(Client.name.ilike(f"%{search}%"))
         return statement
 
     async def update(self, client: Client, data: ClientUpdate) -> Client:

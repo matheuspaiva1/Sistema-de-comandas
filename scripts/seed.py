@@ -23,7 +23,7 @@ app_path = Path(__file__).parent.parent
 sys.path.insert(0, str(app_path))
 
 from app.core.config import settings
-from app.models.product import Product, CategoriaEnum
+from app.models.product import Product, CategoryEnum
 from app.models.document import Document
 from app.core.database import AsyncSessionLocal
 
@@ -42,42 +42,42 @@ async def seed_products(session: AsyncSession, count: int = 120) -> list[Product
     """
     
     produtos = []
-    categorias = list(CategoriaEnum)
+    categorias = list(CategoryEnum)
     
     for i in range(count):
         categoria = categorias[i % len(categorias)]
         
-        if categoria == CategoriaEnum.BEBIDA:
+        if categoria == CategoryEnum.BEBIDA:
             preco = round(fake.pydecimal(left_digits=3, right_digits=2, positive=True, min_value=3, max_value=30), 2)
-        elif categoria == CategoriaEnum.PRATO_PRINCIPAL:
+        elif categoria == CategoryEnum.PRATO_PRINCIPAL:
             preco = round(fake.pydecimal(left_digits=3, right_digits=2, positive=True, min_value=25, max_value=150), 2)
-        elif categoria == CategoriaEnum.ENTRADA:
+        elif categoria == CategoryEnum.ENTRADA:
             preco = round(fake.pydecimal(left_digits=3, right_digits=2, positive=True, min_value=15, max_value=50), 2)
-        elif categoria == CategoriaEnum.SOBREMESA:
+        elif categoria == CategoryEnum.SOBREMESA:
             preco = round(fake.pydecimal(left_digits=3, right_digits=2, positive=True, min_value=10, max_value=40), 2)
         else: 
             preco = round(fake.pydecimal(left_digits=3, right_digits=2, positive=True, min_value=8, max_value=35), 2)
         
-        if categoria == CategoriaEnum.BEBIDA:
+        if categoria == CategoryEnum.BEBIDA:
             nome_base = [
                 "Refrigerante", "Suco", "Água", "Chá gelado", "Café", 
                 "Milkshake", "Smoothie", "Bebida energética", "Vinho", "Cerveja"
             ]
             sabor = fake.word()
             nome = f"{random.choice(nome_base)} {sabor.capitalize()}"
-        elif categoria == CategoriaEnum.PRATO_PRINCIPAL:
+        elif categoria == CategoryEnum.PRATO_PRINCIPAL:
             nome_base = [
                 "Prato de", "Filé", "Peito de", "Arroz com", "Macarrão à", "Risoto de"
             ]
             ingrediente = ["Frango", "Carne", "Peixe", "Camarão", "Cogumelo", "Brócolis"]
             nome = f"{random.choice(nome_base)} {random.choice(ingrediente)}"
-        elif categoria == CategoriaEnum.ENTRADA:
+        elif categoria == CategoryEnum.ENTRADA:
             nome_base = [
                 "Entrada de", "Tábua de", "Pão", "Patê de", "Salada de"
             ]
             ingrediente = ["Queijo", "Presunto", "Vegetais", "Tomate", "Alface", "Frutos do mar"]
             nome = f"{random.choice(nome_base)} {random.choice(ingrediente)}"
-        elif categoria == CategoriaEnum.SOBREMESA:
+        elif categoria == CategoryEnum.SOBREMESA:
             nome_base = [
                 "Bolo de", "Mousse de", "Torta de", "Pudim de", "Sorvete de", "Doce de"
             ]
@@ -91,11 +91,11 @@ async def seed_products(session: AsyncSession, count: int = 120) -> list[Product
             nome = f"{random.choice(nome_base)} {random.choice(ingrediente_lanche)}"
         
         produto = Product(
-            nome=nome,
-            descricao=fake.sentence(nb_words=8),
-            categoria=categoria,
-            preco=float(preco),
-            ativo=random.choice([True, True, True, False]) 
+            name=nome,
+            description=fake.sentence(nb_words=8),
+            category=categoria,
+            price=float(preco),
+            active=random.choice([True, True, True, False]) 
         )
         
         session.add(produto)

@@ -2,29 +2,29 @@ from typing import Optional
 
 from sqlmodel import Field, SQLModel
 
-from app.models.product import CategoriaEnum
+from app.models.product import CategoryEnum
 
 
 class ProductCreate(SQLModel):
-    nome: str = Field(max_length=100)
-    descricao: str = Field(max_length=500)
-    categoria: CategoriaEnum
-    preco: float
-    ativo: Optional[bool] = True
+    name: str = Field(max_length=100)
+    description: str = Field(max_length=500)
+    category: CategoryEnum
+    price: float
+    active: Optional[bool] = True
 
 
 class ProductUpdate(SQLModel):
-    nome: Optional[str] = Field(default=None, max_length=100)
-    descricao: Optional[str] = Field(default=None, max_length=500)
-    categoria: Optional[CategoriaEnum] = None
-    preco: Optional[float] = None
-    ativo: Optional[bool] = None
+    name: Optional[str] = Field(default=None, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=500)
+    category: Optional[CategoryEnum] = None
+    price: Optional[float] = None
+    active: Optional[bool] = None
 
 
 class ProductRead(SQLModel):
     id: int
-    nome: str
-    descricao: str
-    categoria: CategoriaEnum
-    preco: float
-    ativo: bool
+    name: str
+    description: str
+    category: CategoryEnum
+    price: float
+    active: bool

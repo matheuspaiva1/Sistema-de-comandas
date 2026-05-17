@@ -7,6 +7,7 @@ class TableCreate(SQLModel):
     number: int
     name: str | None = None
     seats: int | None = None
+    location: str | None = None
 
 
 class TableUpdate(SQLModel):
@@ -14,6 +15,7 @@ class TableUpdate(SQLModel):
     name: str | None = None
     seats: int | None = None
     status: TableStatus | None = None
+    location: str | None = None
 
 
 class TableRead(SQLModel):
@@ -21,4 +23,5 @@ class TableRead(SQLModel):
     number: int
     name: str | None = None
     seats: int | None = None
+    location: str | None = None
     status: TableStatus

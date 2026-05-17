@@ -26,9 +26,7 @@ class Payment(SQLModel, table=True):
     amount: float = Field(default=0.0)
     method: PaymentMethod = Field(default=PaymentMethod.DINHEIRO)
     status: PaymentStatus = Field(default=PaymentStatus.PENDENTE, index=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
     paid_at: datetime | None = None
-    note: str | None = None
 
     command: Optional["Command"] = Relationship(back_populates="payments")
     # order relationship removed to decouple payments from orders
