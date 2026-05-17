@@ -24,3 +24,4 @@ class Product(SQLModel, table=True):
     ativo: bool = Field(default=True)
 
     documents: list["Document"] = Relationship(back_populates="product")
+    order_items: list["OrderItem"] = Relationship(back_populates="product")
