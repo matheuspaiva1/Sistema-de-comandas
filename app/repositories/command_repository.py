@@ -5,8 +5,7 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 from app.models.command import Command
-from app.models.order import Order
-from app.models.order_item import OrderItem
+from app.models.item_command import ItemCommand
 from app.schemas.command import CommandCreate, CommandUpdate
 
 
@@ -28,9 +27,7 @@ class CommandRepository:
             .where(Command.id == command_id)
             .options(
                 selectinload(Command.client),
-                selectinload(Command.orders)
-                .selectinload(Order.items)
-                .selectinload(OrderItem.product),
+                selectinload(Command.items).selectinload(ItemCommand.product),
             )
         )
         result = await self.session.execute(statement)
@@ -41,9 +38,7 @@ class CommandRepository:
             select(Command)
             .options(
                 selectinload(Command.client),
-                selectinload(Command.orders)
-                .selectinload(Order.items)
-                .selectinload(OrderItem.product),
+                selectinload(Command.items).selectinload(ItemCommand.product),
             )
             .order_by(Command.opened_at.desc())
         )

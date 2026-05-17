@@ -3,22 +3,22 @@ from sqlmodel import SQLModel
 from app.schemas.product import ProductRead
 
 
-class OrderItemCreate(SQLModel):
-    order_id: int
+class ItemCommandCreate(SQLModel):
+    command_id: int
     product_id: int
     quantity: int
     unit_price: float
 
 
-class OrderItemUpdate(SQLModel):
+class ItemCommandUpdate(SQLModel):
     product_id: int | None = None
     quantity: int | None = None
     unit_price: float | None = None
 
 
-class OrderItemRead(SQLModel):
+class ItemCommandRead(SQLModel):
     id: int
-    order_id: int
+    command_id: int
     product_id: int
     quantity: int
     unit_price: float

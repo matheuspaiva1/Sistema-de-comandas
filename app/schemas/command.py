@@ -5,7 +5,8 @@ from sqlmodel import SQLModel
 
 from app.models.command import CommandStatus
 from app.schemas.client import ClientRead
-from app.schemas.order import OrderRead
+from app.schemas.table import TableRead
+from app.schemas.payment import PaymentRead
 
 
 class CommandCreate(SQLModel):
@@ -28,4 +29,5 @@ class CommandRead(SQLModel):
     closed_at: datetime | None = None
     total_amount: float
     client: ClientRead | None = None
-    orders: list[OrderRead] = Field(default_factory=list)
+    table: TableRead | None = None
+    payments: list[PaymentRead] = Field(default_factory=list)

@@ -9,8 +9,9 @@ from app.api.routes.document_router import (
 from app.api.routes.reports_router import router as reports_router
 from app.api.routes.client_router import router as client_router
 from app.api.routes.command_router import router as command_router
-from app.api.routes.order_router import router as order_router
-from app.api.routes.order_item_router import router as order_item_router
+from app.api.routes.item_command_router import router as item_command_router
+from app.api.routes.table_router import router as table_router
+from app.api.routes.payment_router import router as payment_router
 from app.api.errors.handlers import register_error_handlers
 
 app = FastAPI(
@@ -35,12 +36,16 @@ app = FastAPI(
             "description": "Endpoints de comandas",
         },
         {
-            "name": "Pedidos",
-            "description": "Endpoints de pedidos",
+            "name": "Itens da Comanda",
+            "description": "Endpoints de itens da comanda (ItemCommand)",
         },
         {
-            "name": "Itens do Pedido",
-            "description": "Endpoints de itens do pedido",
+            "name": "Mesas",
+            "description": "Endpoints de mesas",
+        },
+        {
+            "name": "Pagamentos",
+            "description": "Endpoints de pagamentos",
         },
         {
             "name": "Cliente",
@@ -55,8 +60,9 @@ app.include_router(products_documents_router)
 app.include_router(reports_router)
 app.include_router(client_router)
 app.include_router(command_router)
-app.include_router(order_router)
-app.include_router(order_item_router)
+app.include_router(item_command_router)
+app.include_router(table_router)
+app.include_router(payment_router)
 
 
 @app.on_event("startup")

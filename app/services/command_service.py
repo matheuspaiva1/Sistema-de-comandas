@@ -5,14 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.errors.exceptions import EntityNotFoundException
 from app.models.command import Command
 from app.repositories.command_repository import CommandRepository
-from app.repositories.order_repository import OrderRepository
 from app.schemas.command import CommandCreate, CommandUpdate
 
 
 class CommandService:
     def __init__(self, session: AsyncSession) -> None:
         self.repo = CommandRepository(session)
-        self.order_repo = OrderRepository(session)
+        # OrderRepository removed (pedidos deleted); no order repo needed here
 
     async def create_command(self, data: CommandCreate) -> Command:
         return await self.repo.create(data)

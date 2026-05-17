@@ -22,6 +22,10 @@ class Command(SQLModel, table=True):
     opened_at: datetime = Field(default_factory=datetime.utcnow)
     closed_at: datetime | None = None
     total_amount: float = Field(default=0.0)
+    table_id: int | None = Field(default=None, foreign_key="tables.id", index=True)
 
     client: "Client" = Relationship(back_populates="commands")
-    orders: list["Order"] = Relationship(back_populates="command")
+    # orders (pedidos) removed
+    table: Optional["Table"] = Relationship(back_populates="commands")
+    payments: list["Payment"] = Relationship(back_populates="command")
+    items: list["ItemCommand"] = Relationship(back_populates="command")
