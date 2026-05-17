@@ -5,6 +5,8 @@ from fastapi.exceptions import RequestValidationError
 from app.api.errors.exceptions import (
     BusinessRuleException,
     ProductNotFoundException,
+    DocumentNotFoundException,
+    InvalidFileException,
     CantDeleteEntityException,
     InvalidDataException,
     EntityAlreadyExistsException,
@@ -33,6 +35,20 @@ def register_error_handlers(app: FastAPI):
     async def product_not_found_handler(request: Request, exc: ProductNotFoundException):
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
+            content={"detail": str(exc)},
+        )
+
+    @app.exception_handler(DocumentNotFoundException)
+    async def document_not_found_handler(request: Request, exc: DocumentNotFoundException):
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"detail": str(exc)},
+        )
+
+    @app.exception_handler(InvalidFileException)
+    async def invalid_file_handler(request: Request, exc: InvalidFileException):
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
             content={"detail": str(exc)},
         )
 

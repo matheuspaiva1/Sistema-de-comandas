@@ -53,3 +53,15 @@ class InvalidDataException(Exception):
         super().__init__(f"Erro no campo '{field}': {message}")
         self.field = field
         self.message = message
+
+
+class DocumentNotFoundException(Exception):
+    def __init__(self, document_id):
+        super().__init__(f"Documento com id={document_id} não encontrado(a).")
+        self.document_id = document_id
+
+
+class InvalidFileException(Exception):
+    def __init__(self, message: str):
+        super().__init__(f"Erro no arquivo: {message}")
+        self.message = message
