@@ -1,7 +1,7 @@
 import enum
 from typing import Optional
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, Relationship
 
 
 class CategoriaEnum(str, enum.Enum):
@@ -22,3 +22,5 @@ class Product(SQLModel, table=True):
     categoria: CategoriaEnum
     preco: float
     ativo: bool = Field(default=True)
+
+    documents: list["Document"] = Relationship(back_populates="product")
