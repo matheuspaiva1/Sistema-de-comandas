@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 from app.api.routes.product_router import router as product_router
+from app.api.routes.document_router import (
+    documents_router,
+    products_documents_router,
+)
+from app.api.routes.reports_router import router as reports_router
 from app.api.errors.handlers import register_error_handlers
 
 app = FastAPI(
@@ -11,6 +16,14 @@ app = FastAPI(
         {
             "name": "Produtos",
             "description": "Endpoints de produtos",
+        },
+        {
+            "name": "Documentos",
+            "description": "Endpoints de upload/download de documentos",
+        },
+        {
+            "name": "Consultas Analíticas e Relatórios",
+            "description": "Endpoints de consultas complexas, filtros e agregações",
         },
         {
             "name": "Comandas",
@@ -32,6 +45,9 @@ app = FastAPI(
 )
 
 app.include_router(product_router)
+app.include_router(documents_router)
+app.include_router(products_documents_router)
+app.include_router(reports_router)
 
 register_error_handlers(app)
 add_pagination(app)
