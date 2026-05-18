@@ -1,8 +1,6 @@
-DIVISÃO DE TAREFAS — ENTIDADE COMANDA
+# DIVISÃO DE TAREFAS — ENTIDADE COMANDA
 
-==================================================
-DESENVOLVEDOR 1 (Miqueias Bento) — CAMADA DE PERSISTÊNCIA (COMANDAS)
-==================================================
+## DESENVOLVEDOR 1 (Miqueias Bento) — CAMADA DE PERSISTÊNCIA (COMANDAS)
 
 [CONCLUÍDO] Implementar a classe de repositório da entidade principal
 - Implementado em: app/domains/comanda/comanda_repository.py
@@ -24,9 +22,7 @@ DESENVOLVEDOR 1 (Miqueias Bento) — CAMADA DE PERSISTÊNCIA (COMANDAS)
 [CONCLUÍDO] vacuum
 - Método vacuum implementado em app/domains/comanda/comanda_repository.py
 
-===============================================
-DESENVOLVEDOR 2 (Matheus Paiva) — API REST + VALIDAÇÃO (COMANDAS)
-===============================================
+## DESENVOLVEDOR 2 (Matheus Paiva) — API REST + VALIDAÇÃO (COMANDAS)
 
 [CONCLUÍDO] Modelos Pydantic (Create, Update, Response)
 - Implementado em: app/domains/comanda/comanda_schema.py
@@ -47,9 +43,7 @@ DESENVOLVEDOR 2 (Matheus Paiva) — API REST + VALIDAÇÃO (COMANDAS)
 - Estrutura modular por domínio em app/domains/* e compartilhados em app/domains/shared/*
 - Registro de rotas centralizado em app/main.py
 
-===========================================================
-DESENVOLVEDOR 3 (Debora Viana) — EXPORTAÇÃO, CARGA INICIAL E QUALIDADE
-===========================================================
+## DESENVOLVEDOR 3 (Debora Viana) — EXPORTAÇÃO, CARGA INICIAL E QUALIDADE
 
 [CONCLUÍDO] Script de carga com Faker (1.000 registros realistas)
 - scripts/seed.py com geração de 1000 registros de comandas.
