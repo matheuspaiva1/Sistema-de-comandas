@@ -35,7 +35,5 @@ class ProductService:
 
     async def delete_product(self, product_id: int) -> None:
         product = await self.get_product(product_id)
-        # Exemplo de onde poderia haver uma trava de negócio (pode ser implementada posteriormente a comanda ter itens)
-        # Lança um CantDeleteEntityException
         
         await self.repo.delete(product)

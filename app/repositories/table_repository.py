@@ -23,7 +23,6 @@ class TableRepository:
         return await self.session.get(Table, table_id)
 
     async def list_all(self):
-        # Return the select statement and let the router/service call apaginate
         return select(Table).order_by(Table.number)
 
     async def update(self, table: Table, data: TableUpdate) -> Table:

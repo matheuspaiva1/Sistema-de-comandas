@@ -11,7 +11,6 @@ from app.schemas.command import CommandCreate, CommandUpdate
 class CommandService:
     def __init__(self, session: AsyncSession) -> None:
         self.repo = CommandRepository(session)
-        # OrderRepository removed (pedidos deleted); no order repo needed here
 
     async def create_command(self, data: CommandCreate) -> Command:
         return await self.repo.create(data)

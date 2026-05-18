@@ -16,7 +16,7 @@ class ItemCommandRepository:
         item = ItemCommand.model_validate(data)
         self.session.add(item)
         await self.session.commit()
-        # reload item with related product and command to avoid lazy IO during serialization
+
         statement = (
             select(ItemCommand)
             .where(ItemCommand.id == item.id)

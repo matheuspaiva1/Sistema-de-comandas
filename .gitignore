@@ -25,3 +25,6 @@ anotacoes/
 # Banco de Dados
 comandas.db
 data.db
+
+# Uploads
+uploads/

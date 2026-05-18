@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional
 
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship, SQLModel, AutoString
 
 
 class TableStatus(str, Enum):
@@ -17,6 +17,6 @@ class Table(SQLModel, table=True):
     name: str | None = None
     seats: int | None = None
     location: str | None = None
-    status: TableStatus = Field(default=TableStatus.LIVRE, index=True)
+    status: TableStatus = Field(default=TableStatus.LIVRE, index=True, sa_type=AutoString)
 
     commands: list["Command"] = Relationship(back_populates="table")

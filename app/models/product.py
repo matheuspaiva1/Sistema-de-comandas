@@ -1,7 +1,7 @@
 import enum
 from typing import Optional
 
-from sqlmodel import Field, SQLModel, Relationship
+from sqlmodel import Field, SQLModel, Relationship, AutoString
 
 
 class CategoryEnum(str, enum.Enum):
@@ -19,7 +19,7 @@ class Product(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(max_length=100)
     description: str = Field(max_length=500)
-    category: CategoryEnum
+    category: CategoryEnum = Field(sa_type=AutoString)
     price: float
     active: bool = Field(default=True)
 
