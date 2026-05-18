@@ -1,5 +1,13 @@
 # Sistema de Comandas API (SQLModel + Async)
 
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571.svg?style=for-the-badge&logo=fastapi)
+![uv](https://img.shields.io/badge/uv-%23DE5FE9.svg?style=for-the-badge&logo=uv&logoColor=white)
+![Pydantic](https://img.shields.io/badge/pydantic-%23E92063.svg?style=for-the-badge&logo=pydantic&logoColor=white)
+![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
+![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
+
+
 Este projeto consiste em uma API assíncrona robusta para o gerenciamento de comandas de consumo em estabelecimentos comerciais (como restaurantes, bares e cafés). Ele foi desenvolvido para a disciplina de **Desenvolvimento de Software para Persistência** (Trabalho Prático - Parte II), utilizando tecnologias modernas do ecossistema Python para persistência relacional assíncrona e upload de mídias físicas.
 
 ---
