@@ -4,6 +4,8 @@ from uuid import UUID, uuid4
 from sqlmodel import Field, SQLModel, Relationship
 
 class Document(SQLModel, table=True):
+    """Representa os metadados de um arquivo físico associado a um produto."""
+
     __tablename__ = "documents"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)

@@ -14,6 +14,8 @@ class CategoryEnum(str, enum.Enum):
 
 
 class Product(SQLModel, table=True):
+    """Representa um produto do cardápio do estabelecimento."""
+
     __tablename__ = "products"
 
     id: Optional[int] = Field(default=None, primary_key=True)
