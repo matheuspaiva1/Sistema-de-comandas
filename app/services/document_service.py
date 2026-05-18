@@ -13,6 +13,13 @@ from app.services.product_service import ProductService
 
 
 class DocumentService:
+    """
+    Serviço responsável pelo gerenciamento de arquivos e documentos associados a Produtos.
+    
+    Controla o upload, download, substituição e remoção física de documentos
+    no armazenamento local, além de persistir e validar os metadados dos arquivos
+    (tamanho, extensão permitida e tipo MIME) no banco de dados.
+    """
     ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".gif"}
     MAX_FILE_SIZE = 50 * 1024 * 1024 
 

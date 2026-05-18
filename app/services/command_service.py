@@ -9,6 +9,13 @@ from app.schemas.command import CommandCreate, CommandUpdate
 
 
 class CommandService:
+    """
+    Serviço responsável pelas operações de Comandas.
+    
+    Gerencia a abertura, encerramento de comandas (com registro automático
+    da data/hora de fechamento se o status mudar para FECHADA), além de
+    operações padrão de listagem, atualização e exclusão de comandas.
+    """
     def __init__(self, session: AsyncSession) -> None:
         self.repo = CommandRepository(session)
 

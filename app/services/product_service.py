@@ -13,6 +13,12 @@ from app.api.errors.exceptions import (
 
 
 class ProductService:
+    """
+    Serviço responsável pela lógica de negócios dos Produtos.
+    
+    Gerencia o cadastro, atualização de preços/descrições, exclusão e
+    listagem de produtos ativos e inativos do cardápio do estabelecimento.
+    """
 
     def __init__(self, session: AsyncSession) -> None:
         self.repo = ProductRepository(session)

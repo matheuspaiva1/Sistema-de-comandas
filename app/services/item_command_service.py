@@ -8,6 +8,12 @@ from app.schemas.item_command import ItemCommandCreate, ItemCommandUpdate
 
 
 class ItemCommandService:
+    """
+    Serviço responsável pelo gerenciamento de itens vinculados a uma Comanda.
+    
+    Permite adicionar produtos a uma comanda ativa, além de listar, atualizar
+    quantidades/valores ou excluir itens já registrados nas comandas.
+    """
     def __init__(self, session: AsyncSession) -> None:
         self.repo = ItemCommandRepository(session)
         self.command_repo = CommandRepository(session)

@@ -7,6 +7,12 @@ from app.schemas.table import TableCreate, TableUpdate
 
 
 class TableService:
+    """
+    Serviço responsável pelo gerenciamento das Mesas do estabelecimento.
+    
+    Controla a criação de novas mesas físicas, listagem de mesas por status,
+    atualização de dados e exclusão de mesas no banco de dados.
+    """
     def __init__(self, session: AsyncSession) -> None:
         self.repo = TableRepository(session)
 

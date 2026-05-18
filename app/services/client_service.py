@@ -7,6 +7,12 @@ from app.schemas.client import ClientCreate, ClientUpdate
 
 
 class ClientService:
+    """
+    Serviço responsável pela lógica de negócios associada a Clientes.
+    
+    Realiza a criação, leitura, atualização e exclusão (CRUD) de clientes
+    fazendo a ponte entre os controladores da API e o repositório de clientes.
+    """
     def __init__(self, session: AsyncSession) -> None:
         self.repo = ClientRepository(session)
 

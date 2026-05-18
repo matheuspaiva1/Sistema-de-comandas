@@ -8,6 +8,12 @@ from app.schemas.payment import PaymentCreate, PaymentUpdate
 
 
 class PaymentService:
+    """
+    Serviço responsável pelo fluxo de pagamentos de Comandas.
+    
+    Permite registrar novos pagamentos vinculados a comandas existentes,
+    assim como consultar, atualizar e excluir históricos de pagamentos.
+    """
     def __init__(self, session: AsyncSession) -> None:
         self.repo = PaymentRepository(session)
         self.command_repo = CommandRepository(session)
