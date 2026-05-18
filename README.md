@@ -20,49 +20,60 @@ Este projeto consiste em uma API assíncrona robusta para o gerenciamento de com
 O sistema conta com **7 entidades interconectadas**, atendendo aos requisitos mínimos de relacionamentos Um-para-Muitos ($1 \leftrightarrow N$) e Muitos-para-Muitos ($N \leftrightarrow M$):
 
 ```mermaid
+---
+config:
+  layout: elk
+  look: classic
+  theme: dark
+---
 erDiagram
-    Client ||--o{ Command : "possui"
-    Command ||--o{ ItemCommand : "contém"
-    Table ||--o{ Command : "vinculada_a"
-    Product ||--o{ ItemCommand : "associado_a"
-    Product ||--o{ Document : "possui"
-    Command ||--o{ Payment : "recebe"
+    Cliente ||--o{ Comanda : "possui"
+    Comanda ||--o{ ItemComanda : "contém"
+    Mesa ||--o{ Comanda : "vinculada_a"
+    Produto ||--o{ ItemComanda : "associado_a"
+    Produto ||--o{ Documento : "possui"
+    Comanda ||--o{ Pagamento : "recebe"
 
-    Client {
+    Cliente {
         int id PK "Autoincrement"
         string nome "index"
         string telefone
         string email "index"
-        datetime created_at
+        string identificador
+        datetime criado_em
+        int comanda_id FK "comandas.is"
     }
 
-    Table {
+    Mesa {
         int id PK "Autoincrement"
         int numero "unique"
+        string nome
+        int assentos
+        string local
         string status "LIVRE/OCUPADA"
+        int comanda_id FK "comandas.id"
     }
 
-    Command {
+    Comanda {
         int id PK "Autoincrement"
-        string code "index"
-        int client_id FK "clients.id"
-        int table_id FK "tables.id"
+        string codigo "index"
         string status "ABERTA/FECHADA/CANCELADA"
-        datetime opened_at
-        datetime closed_at
-        float total_amount
+        datetime aberta_em
+        datetime fechada_em
+        float total_conta
+        int cliente_id FK "clientes.id"
+        int mesa_id FK "mesa.id"
     }
 
-    ItemCommand {
+    ItemComanda {
         int id PK "Autoincrement"
-        int command_id FK "commands.id"
-        int product_id FK "products.id"
+        int comanda_id FK "Comandas.id"
+        int produto_id FK "Produtos.id"
         int quantity
-        float unit_price
-        float total_price
+        float preco_unitario
     }
 
-    Product {
+    Produto {
         int id PK "Autoincrement"
         string nome
         string descricao
@@ -71,22 +82,23 @@ erDiagram
         bool ativo
     }
 
-    Document {
+    Documento {
         UUID id PK "UUIDv4"
-        int product_id FK "products.id"
-        string original_filename
-        string content_type
-        string extension
-        int size_bytes
-        datetime created_at
+        int Produto_id FK "Produtos.id"
+        string arquivo
+        string tipo
+        string extensao
+        int tamanho
+        datetime criado_em
     }
 
-    Payment {
+    Pagamento {
         int id PK "Autoincrement"
-        int command_id FK "commands.id"
+        int comanda_id FK "comanda.id"
         float valor
         string metodo "DINHEIRO/CARTAO/PIX"
-        datetime paid_at
+        string status "PAGO/ESTORNADO"
+        datetime pago_em
     }
 ```
 
