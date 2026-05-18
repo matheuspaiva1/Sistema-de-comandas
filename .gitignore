@@ -9,9 +9,22 @@ wheels/
 # Virtual environments
 .venv
 
+# Environment variables
+.env
+
 # Data directory and persistence files
 data/
 *.parquet
 *.seq
 _delta_log/
 _symlink_format_version
+
+# Anotacoes
+anotacoes/
+
+# Banco de Dados
+comandas.db
+data.db
+
+# Uploads
+uploads/

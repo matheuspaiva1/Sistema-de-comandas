@@ -1,75 +1,188 @@
-# Sistema de Comandas - API com Delta Lake
+# Sistema de Comandas API (SQLModel + Async)
 
-Este projeto implementa um sistema de gerenciamento de comandas utilizando **FastAPI** para a interface REST e **Delta Lake** para a persistência de dados, seguindo os requisitos de desenvolvimento de software para persistência.
-
----
-
-## 1. Mini Banco de Dados com Delta Lake
-
-Implementação de uma classe em Python que gerencia a persistência de uma entidade no formato Delta Lake (biblioteca `deltalake`), suportando operações CRUD completas.
-
-### Requisitos de Persistência
-
-* **Persistência em Arquivo**: Utilização exclusiva do módulo `deltalake` para leitura e escrita.
-* **Eficiência de Memória**: Nenhuma operação depende do carregamento completo dos dados na RAM.
-* **Controle de IDs (autoincremento)**: Manutenção de um arquivo auxiliar `.seq` para incremento automático do identificador a cada nova inserção.
-
-### Operações Obrigatórias
-
-| Método | Descrição |
-| :--- | :--- |
-| `insert` | Insere um novo registro |
-| `get` | Recupera um registro por ID |
-| `list` | Retorna uma página de registros (paginação de tamanho variável) |
-| `update` | Atualiza um registro existente |
-| `delete` | Remove um registro |
-| `count` | Retorna o total real de registros armazenados |
-| `vacuum` | Compacta e limpa o arquivo de dados, descartando versões antigas e otimizando o espaço |
+Este projeto consiste em uma API assíncrona robusta para o gerenciamento de comandas de consumo em estabelecimentos comerciais (como restaurantes, bares e cafés). Ele foi desenvolvido para a disciplina de **Desenvolvimento de Software para Persistência** (Trabalho Prático - Parte II), utilizando tecnologias modernas do ecossistema Python para persistência relacional assíncrona e upload de mídias físicas.
 
 ---
 
-## 2. Entidade do Domínio
+## Tecnologias Utilizadas
 
-A entidade escolhida para este projeto é a **Comanda**, relacionada à gestão de consumo em estabelecimentos.
-Atributos principais incluem: `id`, `clientId`, `tableId`, `status`, `fullValue`.
-
----
-
-## 3. API REST com FastAPI
-
-Interface RESTful validada com Pydantic, organizada em módulos dedicados.
-
-### Endpoints e Funcionalidades
-
-| ID | Funcionalidade | Descrição |
-| :--- | :--- | :--- |
-| **F1** | Inserção | Recebe JSON da entidade e insere no minibanco. |
-| **F2** | Listagem Paginada | Define número e tamanho da página via *query string*. |
-| **F3** | CRUD Completo | GET, POST, PUT/PATCH, DELETE agindo diretamente no arquivo. |
-| **F4** | Contagem | Retorna o número total de registros. |
-| **F5** | Exportação CSV | Streaming de todos os registros sem carregar tudo em memória. |
-| **F6** | Exportação ZIP | Streaming de CSV compactado em formato `.zip`. |
-| **F7** | Hash de Dado | Gera hash (MD5, SHA-1, SHA-256) de um valor recebido. |
+*   **[FastAPI](https://fastapi.tiangolo.com/)**: Construção da API REST ágil, moderna e autocomprovada com OpenAPI/Swagger.
+*   **[SQLModel](https://sqlmodel.tiangolo.com/)**: Abstração ORM que unifica o poder de validação do Pydantic com a flexibilidade relacional do SQLAlchemy.
+*   **[Alembic](https://alembic.sqlalchemy.org/)**: Controle de versão e migrações do banco de dados executado de forma 100% assíncrona.
+*   **SQLite & PostgreSQL**: Compatibilidade total de schemas. A alteração de persistência ocorre bastando mudar uma linha no arquivo `.env`.
+*   **[UV](https://github.com/astral-sh/uv)**: Gerenciador ultra-rápido de dependências e ambiente virtual do ecossistema Python.
+*   **[fastapi-pagination](https://github.com/uriyyo/fastapi-pagination)**: Paginação integrada de alta performance aplicada diretamente no banco de dados para evitar vazamento de memória RAM.
 
 ---
 
-## 4. Script de Carga Inicial
+## Modelo de Dados (ERD)
 
-Scripts integrados (ex: `scripts/seed.py`) para população automática do banco com no mínimo **1.000 registros realistas** utilizando a biblioteca `Faker` (localização `pt_BR`).
+O sistema conta com **7 entidades interconectadas**, atendendo aos requisitos mínimos de relacionamentos Um-para-Muitos ($1 \leftrightarrow N$) e Muitos-para-Muitos ($N \leftrightarrow M$):
+
+```mermaid
+erDiagram
+    Client ||--o{ Command : "possui"
+    Command ||--o{ ItemCommand : "contém"
+    Table ||--o{ Command : "vinculada_a"
+    Product ||--o{ ItemCommand : "associado_a"
+    Product ||--o{ Document : "possui"
+    Command ||--o{ Payment : "recebe"
+
+    Client {
+        int id PK "Autoincrement"
+        string nome "index"
+        string telefone
+        string email "index"
+        datetime created_at
+    }
+
+    Table {
+        int id PK "Autoincrement"
+        int numero "unique"
+        string status "LIVRE/OCUPADA"
+    }
+
+    Command {
+        int id PK "Autoincrement"
+        string code "index"
+        int client_id FK "clients.id"
+        int table_id FK "tables.id"
+        string status "ABERTA/FECHADA/CANCELADA"
+        datetime opened_at
+        datetime closed_at
+        float total_amount
+    }
+
+    ItemCommand {
+        int id PK "Autoincrement"
+        int command_id FK "commands.id"
+        int product_id FK "products.id"
+        int quantity
+        float unit_price
+        float total_price
+    }
+
+    Product {
+        int id PK "Autoincrement"
+        string nome
+        string descricao
+        string categoria "BEBIDA/PRATO_PRINCIPAL/etc"
+        float preco
+        bool ativo
+    }
+
+    Document {
+        UUID id PK "UUIDv4"
+        int product_id FK "products.id"
+        string original_filename
+        string content_type
+        string extension
+        int size_bytes
+        datetime created_at
+    }
+
+    Payment {
+        int id PK "Autoincrement"
+        int command_id FK "commands.id"
+        float valor
+        string metodo "DINHEIRO/CARTAO/PIX"
+        datetime paid_at
+    }
+```
+
+### Entidades do Domínio:
+1.  **[Client](./app/models/client.py)**: Clientes do estabelecimento.
+2.  **[Table](./app/models/table.py)**: Mesas físicas onde os clientes realizam o consumo.
+3.  **[Command](./app/models/command.py)**: Controle central da comanda aberta com seu status e acumuladores.
+4.  **[ItemCommand](./app/models/item_command.py)**: Itens consumidos associados à comanda, encapsulando quantidade e o histórico do preço unitário de venda.
+5.  **[Product](./app/models/product.py)**: Produtos do cardápio.
+6.  **[Payment](./app/models/payment.py)**: Pagamentos parciais ou totais aplicados à comanda.
+7.  **[Document](./app/models/document.py)**: Anexos e fotos associados a produtos do cardápio, onde os arquivos físicos residem de forma local no sistema e o banco de dados armazena apenas seus metadados.
 
 ---
 
-## 5. Divisão de Tarefas
+## Estrutura de Diretórios
 
-Consulte o arquivo `divisao_tarefas.txt` para detalhes sobre as implementações realizadas por cada membro do grupo.
+O projeto está estruturado de forma modular e altamente extensível:
+
+```text
+├── alembic.ini                   # Configurações do migrador Alembic
+├── migrations/                   # Scripts de migração de banco gerados
+├── app/
+│   ├── api/
+│   │   ├── errors/               # Middleware de erros e exception handlers globais
+│   │   └── routes/               # Rotas/Endpoints por domínio
+│   ├── core/
+│   │   ├── config.py             # Configurações do app através do .env
+│   │   └── database.py           # Setup do motor e sessão assíncrona do SQLAlchemy
+│   ├── models/                   # Entidades SQLModel representativas das tabelas
+│   ├── repositories/             # Camada de persistência/acesso a dados genérica
+│   ├── schemas/                  # Validação Pydantic (Create, Update, Response)
+│   └── services/                 # Regras de negócios e transações
+├── uploads/                      # Pasta local padrão para armazenamento físico de documentos
+├── scripts/
+│   ├── seed.py                   # Script de carga inicial (1.000+ registros via Faker pt_BR)
+│   └── seeds/                    # Sub-seeds modulares
+├── pyproject.toml                # Dependências e declaração de ferramentas do projeto
+└── uv.lock                       # Arquivo de integridade e travamento do UV
+```
 
 ---
 
-## 📝 Observações Gerais e Diretrizes
+## Instalação e Execução
 
-* **Apresentação**: Obrigatória e presencial (5 min por membro).
-* **Modularização**: Código organizado por funcionalidades e responsabilidades específicas.
-* **Qualidade dos Dados**: Geração de dados realistas e coerentes.
-* **Tipagem Moderna**: Utilização da sintaxe nativa do Python 3.10+ (ex: `list`, `str | None`) em vez do módulo `typing` legado.
-* **Performance**: Proibição do carregamento da tabela inteira em memória; uso obrigatório de paginação e filtros.
-* **Entrega**: Inclui apenas código-fonte, scripts de carga e `pyproject.toml`. Arquivos gerados (`data/`, `.venv`, etc) não devem ser versionados.
+### 1. Pré-requisitos
+Certifique-se de possuir o **Python 3.10+** e o gerenciador de pacotes **`uv`** instalado em sua máquina.
+
+### 2. Clonando e Instalando Dependências
+Com o `uv` instalado, execute no terminal para sincronizar as dependências e o ambiente virtual:
+```bash
+uv sync
+```
+
+### 3. Configuração do `.env`
+Crie ou edite o arquivo `.env` na raiz do projeto contendo as credenciais. Você pode alternar o driver de persistência comentando e descomentando as linhas:
+```ini
+# Para persistência em SQLite Local:
+DATABASE_URL=sqlite+aiosqlite:///./comandas.db
+
+# Para persistência em PostgreSQL (Nuvem ou Docker):
+# DATABASE_URL=postgresql+asyncpg://usuario:senha@host:porta/banco
+```
+
+### 4. Executando as Migrações
+Execute o comando a seguir para aplicar as atualizações do banco assincronamente através do Alembic:
+```bash
+uv run alembic upgrade head
+```
+
+### 5. Carga de Dados (Seeding Realista)
+Popule o banco de dados configurado no `.env` com no mínimo **1.000 registros realistas** gerados através da biblioteca `Faker` (localização `pt_BR`):
+```bash
+uv run python scripts/seed.py
+```
+
+### 6. Executando o Servidor de Desenvolvimento
+Inicie a aplicação utilizando o Uvicorn:
+```bash
+uv run uvicorn app.main:app --reload
+```
+Acesse a documentação interativa Swagger no endereço:
+[http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+## Endpoints de Consultas Analíticas e Relatórios
+
+Além do CRUD completo para todas as entidades principais do domínio com suporte a paginação de alto desempenho (`fastapi-pagination`) e carregamento de relacionamentos ansiosos (*eager loading* via `selectinload` e `joinedload`), a aplicação expõe endpoints dedicados para relatórios analíticos:
+
+*   **Filtros complexos**: Listagem de comandas por cliente ativo ou por período.
+*   **Busca textual parcial**: Localização de produtos ou clientes pelo nome parcial.
+*   **Agregações e Estatísticas**: Total arrecadado por comanda, ticket médio por mesa, contagem de comandas abertas, etc.
+*   **Upload e Download de Arquivos**: Endpoints específicos em `/produtos/{produto_id}/documents` para controle integral de mídias de produtos com persistência exclusiva de metadados.
+
+---
+
+## Membros e Divisão de Tarefas
+
+Consulte o arquivo **[divisao_tarefas.md](divisao_tarefas.md)** para mais detalhes de ownership sobre a arquitetura e componentes criados por cada membro.
