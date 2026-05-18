@@ -10,6 +10,11 @@ from sqlmodel import select
 from app.api.deps import SessionDep
 from app.models.product import Product, CategoryEnum
 from app.models.document import Document
+from app.models.command import Command, CommandStatus
+from app.models.client import Client
+from app.models.item_command import ItemCommand
+from app.models.payment import Payment
+from app.models.table import Table
 from app.schemas.product import ProductRead
 from app.schemas.document import DocumentRead
 from fastapi_pagination.ext.sqlmodel import apaginate
@@ -53,7 +58,7 @@ async def get_products_statistics(session: SessionDep):
         "max_price_overall": float(price_stats[2]) if price_stats[2] else 0,
         "by_category": [
             {
-                "category": cat.category.value,
+                "category": cat.category,
                 "quantity": cat.quantity,
                 "average_price": float(cat.avg_price) if cat.avg_price else 0,
                 "min_price": float(cat.min_price) if cat.min_price else 0,
@@ -135,128 +140,146 @@ async def list_products_advanced_filter(
     return await apaginate(session, statement)
 
 
-@router.get("/products/with-documents")
-async def list_products_with_documents(session: SessionDep):
-    """Lista produtos que possuem documentos associados."""
-    statement = (
-        select(Product)
-        .where(Product.documents.any())
-        .options(selectinload(Product.documents))
-    )
-    result = await session.execute(statement)
-    products = result.scalars().unique().all()
-
-    return [
-        {
-            "id": p.id,
-            "name": p.name,
-            "category": p.category.value,
-            "price": p.price,
-            "documents_count": len(p.documents),
-            "documents": [
-                {
-                    "id": str(d.id),
-                    "original_filename": d.original_filename,
-                    "content_type": d.content_type,
-                    "size_bytes": d.size_bytes,
-                    "created_at": d.created_at.isoformat(),
-                }
-                for d in p.documents
-            ],
-        }
-        for p in products
-    ]
-
-
-@router.get("/products/without-documents", response_model=Page[ProductRead])
-async def list_products_without_documents(session: SessionDep):
-    """Lista produtos que não possuem documentos associados."""
-    statement = select(Product).where(~Product.documents.any())
-    return await apaginate(session, statement)
-
-
-@router.get("/documents/stats")
-async def get_documents_statistics(session: SessionDep):
-    """Estatísticas sobre os documentos cadastrados."""
-    total_result = await session.execute(select(func.count(Document.id)))
-    total_docs = total_result.scalar()
-
-    size_result = await session.execute(
-        select(
-            func.sum(Document.size_bytes).label("total_size"),
-            func.avg(Document.size_bytes).label("avg_size"),
-            func.max(Document.size_bytes).label("max_size"),
-        )
-    )
-    size_data = size_result.one()
-
-    type_result = await session.execute(
-        select(
-            Document.content_type,
-            func.count(Document.id).label("count"),
-        ).group_by(Document.content_type)
-    )
-
-    return {
-        "total_documents": total_docs,
-        "total_size_bytes": size_data[0] or 0,
-        "average_size_bytes": float(size_data[1]) if size_data[1] else 0,
-        "max_size_bytes": float(size_data[2]) if size_data[2] else 0,
-        "by_type": [
-            {"content_type": row[0], "quantity": row[1]}
-            for row in type_result.all()
-        ],
-    }
-
-
-@router.get("/products/{product_id}/documents/stats")
-async def get_product_documents_stats(product_id: int, session: SessionDep):
-    """Estatísticas dos documentos de um produto específico."""
-    product = await session.get(Product, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Produto não encontrado")
-
-    result = await session.execute(
-        select(
-            func.count(Document.id).label("total"),
-            func.sum(Document.size_bytes).label("total_size"),
-            func.avg(Document.size_bytes).label("avg_size"),
-        ).where(Document.product_id == product_id)
-    )
-    stats = result.one()
-
-    return {
-        "product_id": product_id,
-        "product_name": product.name,
-        "total_documents": stats[0],
-        "total_size_bytes": stats[1] or 0,
-        "average_size_bytes": float(stats[2]) if stats[2] else 0,
-    }
-
-
-@router.get("/documents/filtered-by-date", response_model=Page[DocumentRead])
-async def list_documents_by_date(
+@router.get("/commands/revenue")
+async def get_revenue_by_period(
     session: SessionDep,
-    year: Optional[int] = Query(None),
-    month: Optional[int] = Query(None, ge=1, le=12),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
 ):
-    """Lista documentos com filtros por data e ano."""
-    statement = select(Document)
-    filters = []
-
+    """Retorna o faturamento total (soma das comandas fechadas) no período."""
+    statement = select(func.sum(Command.total_amount)).where(Command.status == CommandStatus.FECHADA)
     if start_date:
-        filters.append(Document.created_at >= start_date)
+        statement = statement.where(Command.opened_at >= start_date)
     if end_date:
-        filters.append(Document.created_at <= end_date)
-    if year:
-        filters.append(extract("year", Document.created_at) == year)
-    if month:
-        filters.append(extract("month", Document.created_at) == month)
+        statement = statement.where(Command.opened_at <= end_date)
+        
+    result = await session.execute(statement)
+    total_revenue = result.scalar() or 0.0
+    
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "total_revenue": total_revenue
+    }
 
-    if filters:
-        statement = statement.where(and_(*filters))
 
-    statement = statement.order_by(Document.created_at.desc())
-    return await apaginate(session, statement)
+@router.get("/products/best-sellers")
+async def get_best_sellers(session: SessionDep, limit: int = Query(10, ge=1, le=100)):
+    """Lista os produtos mais vendidos baseados na quantidade total consumida."""
+    statement = (
+        select(
+            Product.id,
+            Product.name,
+            func.sum(ItemCommand.quantity).label("total_sold"),
+            func.sum(ItemCommand.quantity * ItemCommand.unit_price).label("total_revenue")
+        )
+        .join(ItemCommand, ItemCommand.product_id == Product.id)
+        .group_by(Product.id, Product.name)
+        .order_by(func.sum(ItemCommand.quantity).desc())
+        .limit(limit)
+    )
+    result = await session.execute(statement)
+    best_sellers = result.all()
+    
+    return [
+        {
+            "product_id": row.id,
+            "name": row.name,
+            "total_sold": row.total_sold,
+            "total_revenue": float(row.total_revenue)
+        }
+        for row in best_sellers
+    ]
+
+
+@router.get("/clients/top")
+async def get_top_clients(session: SessionDep, limit: int = Query(10, ge=1, le=100)):
+    """Retorna os clientes que mais gastaram no restaurante."""
+    statement = (
+        select(
+            Client.id,
+            Client.name,
+            func.sum(Command.total_amount).label("total_spent"),
+            func.count(Command.id).label("total_visits")
+        )
+        .join(Command, Command.client_id == Client.id)
+        .where(Command.status == CommandStatus.FECHADA)
+        .group_by(Client.id, Client.name)
+        .order_by(func.sum(Command.total_amount).desc())
+        .limit(limit)
+    )
+    result = await session.execute(statement)
+    top_clients = result.all()
+    
+    return [
+        {
+            "client_id": row.id,
+            "name": row.name,
+            "total_spent": float(row.total_spent),
+            "total_visits": row.total_visits
+        }
+        for row in top_clients
+    ]
+
+
+@router.get("/payments/methods-stats")
+async def get_payment_methods_stats(session: SessionDep):
+    """Análise do faturamento agrupado por meio de pagamento."""
+    statement = (
+        select(
+            Payment.method,
+            func.count(Payment.id).label("transactions"),
+            func.sum(Payment.amount).label("total_revenue")
+        )
+        .group_by(Payment.method)
+        .order_by(func.sum(Payment.amount).desc())
+    )
+    result = await session.execute(statement)
+    methods_data = result.all()
+    
+    total_overall = sum(row.total_revenue for row in methods_data if row.total_revenue)
+    
+    return {
+        "total_revenue": float(total_overall),
+        "by_method": [
+            {
+                "method": row.method,
+                "transactions": row.transactions,
+                "total": float(row.total_revenue) if row.total_revenue else 0,
+                "percentage": round((float(row.total_revenue) / float(total_overall)) * 100, 2) if total_overall > 0 else 0
+            }
+            for row in methods_data
+        ]
+    }
+
+
+@router.get("/tables/top")
+async def get_top_tables(session: SessionDep, limit: int = Query(10, ge=1, le=100)):
+    """Ranking das mesas que geraram o maior faturamento histórico."""
+    statement = (
+        select(
+            Table.id,
+            Table.name,
+            Table.location,
+            func.sum(Command.total_amount).label("total_revenue"),
+            func.count(Command.id).label("total_commands")
+        )
+        .join(Command, Command.table_id == Table.id)
+        .where(Command.status == CommandStatus.FECHADA)
+        .group_by(Table.id, Table.name, Table.location)
+        .order_by(func.sum(Command.total_amount).desc())
+        .limit(limit)
+    )
+    result = await session.execute(statement)
+    top_tables = result.all()
+    
+    return [
+        {
+            "table_id": row.id,
+            "name": row.name,
+            "location": row.location,
+            "total_revenue": float(row.total_revenue) if row.total_revenue else 0,
+            "total_commands": row.total_commands
+        }
+        for row in top_tables
+    ]
