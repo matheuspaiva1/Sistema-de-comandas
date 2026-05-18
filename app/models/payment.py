@@ -18,6 +18,8 @@ class PaymentStatus(str, Enum):
 
 
 class Payment(SQLModel, table=True):
+    """Representa um pagamento parcial ou total aplicado a uma comanda."""
+
     __tablename__ = "payments"
 
     id: Optional[int] = Field(default=None, primary_key=True)

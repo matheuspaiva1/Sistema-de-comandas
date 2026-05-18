@@ -17,6 +17,8 @@ from app.api.errors.exceptions import (
 
 
 def register_error_handlers(app: FastAPI):
+    """Registra todos os exception handlers globais na instância FastAPI."""
+
     @app.exception_handler(UnauthorizedException)
     async def unauthorized_handler(request: Request, exc: UnauthorizedException):
         return JSONResponse(

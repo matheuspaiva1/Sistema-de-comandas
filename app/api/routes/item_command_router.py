@@ -11,6 +11,7 @@ router = APIRouter(prefix="/itens-comanda", tags=["Itens da Comanda"])
 
 @router.post("/", response_model=ItemCommandRead, status_code=status.HTTP_201_CREATED)
 async def create_item(data: ItemCommandCreate, session: SessionDep):
+    """Adiciona um novo item a uma comanda."""
     service = ItemCommandService(session)
     return await service.create_item(data)
 
@@ -21,6 +22,7 @@ async def list_items(
     command_id: int | None = Query(default=None, ge=1),
     product_id: int | None = Query(default=None, ge=1),
 ):
+    """Lista itens de comanda com paginação e filtros opcionais."""
     service = ItemCommandService(session)
     statement = await service.list_items(command_id=command_id, product_id=product_id)
     return await apaginate(session, statement)
@@ -28,17 +30,20 @@ async def list_items(
 
 @router.get("/{item_id}", response_model=ItemCommandRead)
 async def get_item(item_id: int, session: SessionDep):
+    """Retorna um item de comanda pelo ID."""
     service = ItemCommandService(session)
     return await service.get_item(item_id)
 
 
 @router.put("/{item_id}", response_model=ItemCommandRead)
 async def update_item(item_id: int, data: ItemCommandUpdate, session: SessionDep):
+    """Atualiza os dados de um item de comanda."""
     service = ItemCommandService(session)
     return await service.update_item(item_id, data)
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_item(item_id: int, session: SessionDep):
+    """Remove um item de comanda pelo ID."""
     service = ItemCommandService(session)
     await service.delete_item(item_id)

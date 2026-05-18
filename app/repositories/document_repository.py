@@ -10,12 +10,15 @@ from app.core.config import settings
 
 
 class DocumentRepository:
+    """Repositório de acesso a dados e armazenamento físico de documentos."""
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.upload_dir = Path(settings.upload_dir)
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 
     def _file_path(self, document_id: UUID, extension: str) -> Path:
+        """Retorna o caminho físico do arquivo com base no ID e extensão."""
         return self.upload_dir / f"{document_id}{extension}"
 
     async def create(
@@ -27,6 +30,7 @@ class DocumentRepository:
         size_bytes: int,
         file_content: bytes,
     ) -> Document:
+        """Persiste os metadados do documento e grava o arquivo físico no disco."""
         document = Document(
             product_id=product_id,
             original_filename=original_filename,
@@ -42,9 +46,11 @@ class DocumentRepository:
         return document
 
     async def get_by_id(self, document_id: UUID) -> Optional[Document]:
+        """Retorna um documento pelo seu UUID, ou None se não encontrado."""
         return await self.session.get(Document, document_id)
 
     def list_by_product_statement(self, product_id: int):
+        """Retorna statement de listagem de documentos de um produto, ordenados por data."""
         return (
             select(Document)
             .where(Document.product_id == product_id)
@@ -52,6 +58,7 @@ class DocumentRepository:
         )
 
     async def get_file_path(self, document_id: UUID) -> Optional[Path]:
+        """Retorna o caminho físico do arquivo se existir, ou None."""
         document = await self.get_by_id(document_id)
         if not document:
             return None
@@ -70,6 +77,7 @@ class DocumentRepository:
         size_bytes: int,
         file_content: bytes,
     ) -> Optional[Document]:
+        """Substitui os metadados e o arquivo físico de um documento existente."""
         document = await self.get_by_id(document_id)
         if not document:
             return None
@@ -92,6 +100,7 @@ class DocumentRepository:
         return document
 
     async def delete(self, document_id: UUID) -> bool:
+        """Remove o documento do banco e apaga o arquivo físico. Retorna True se bem-sucedido."""
         document = await self.get_by_id(document_id)
         if not document:
             return False
@@ -105,6 +114,7 @@ class DocumentRepository:
         return True
 
     async def delete_by_product(self, product_id: int) -> int:
+        """Remove todos os documentos de um produto. Retorna a quantidade removida."""
         result = await self.session.execute(
             select(Document).where(Document.product_id == product_id)
         )

@@ -20,11 +20,13 @@ AsyncSessionLocal = sessionmaker(
 
 
 async def get_session():
+    """Dependência FastAPI que fornece uma sessão assíncrona do banco de dados."""
     async with AsyncSessionLocal() as session:
         yield session
 
 
 async def init_db():
+    """Inicializa o banco de dados criando as tabelas e aplicando correções de schema."""
     import app.models  # noqa: F401
 
     async with engine.begin() as conn:

@@ -11,6 +11,7 @@ router = APIRouter(prefix="/comandas", tags=["Comandas"])
 
 @router.post("/", response_model=CommandRead, status_code=status.HTTP_201_CREATED)
 async def create_command(data: CommandCreate, session: SessionDep):
+    """Cria uma nova comanda."""
     service = CommandService(session)
     return await service.create_command(data)
 
@@ -21,6 +22,7 @@ async def list_commands(
     client_id: int | None = Query(default=None, ge=1),
     status_: str | None = Query(default=None, alias="status"),
 ):
+    """Lista comandas com paginação e filtros opcionais por cliente e status."""
     service = CommandService(session)
     statement = await service.list_commands(client_id=client_id, status=status_)
     return await apaginate(session, statement)
@@ -28,17 +30,20 @@ async def list_commands(
 
 @router.get("/{command_id}", response_model=CommandRead)
 async def get_command(command_id: int, session: SessionDep):
+    """Retorna uma comanda pelo ID."""
     service = CommandService(session)
     return await service.get_command(command_id)
 
 
 @router.put("/{command_id}", response_model=CommandRead)
 async def update_command(command_id: int, data: CommandUpdate, session: SessionDep):
+    """Atualiza os dados de uma comanda."""
     service = CommandService(session)
     return await service.update_command(command_id, data)
 
 
 @router.delete("/{command_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_command(command_id: int, session: SessionDep):
+    """Remove uma comanda pelo ID."""
     service = CommandService(session)
     await service.delete_command(command_id)

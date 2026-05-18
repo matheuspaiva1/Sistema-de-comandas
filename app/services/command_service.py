@@ -20,23 +20,28 @@ class CommandService:
         self.repo = CommandRepository(session)
 
     async def create_command(self, data: CommandCreate) -> Command:
+        """Cria e retorna uma nova comanda."""
         return await self.repo.create(data)
 
     async def list_commands(self, client_id: int | None = None, status: str | None = None):
+        """Retorna statement de listagem de comandas com filtros opcionais."""
         return await self.repo.list_all(client_id=client_id, status=status)
 
     async def get_command(self, command_id: int) -> Command:
+        """Retorna uma comanda pelo ID ou lança EntityNotFoundException."""
         command = await self.repo.get_by_id(command_id)
         if not command:
             raise EntityNotFoundException("Comanda", command_id)
         return command
 
     async def update_command(self, command_id: int, data: CommandUpdate) -> Command:
+        """Atualiza uma comanda, registrando automaticamente closed_at ao fechar."""
         command = await self.get_command(command_id)
         if data.status and data.status.value == "FECHADA" and data.closed_at is None:
             data.closed_at = datetime.utcnow()
         return await self.repo.update(command, data)
 
     async def delete_command(self, command_id: int) -> None:
+        """Remove uma comanda pelo ID."""
         command = await self.get_command(command_id)
         await self.repo.delete(command)

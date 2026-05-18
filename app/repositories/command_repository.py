@@ -10,10 +10,13 @@ from app.schemas.command import CommandCreate, CommandUpdate
 
 
 class CommandRepository:
+    """Repositório de acesso a dados para a entidade Command."""
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
     async def create(self, data: CommandCreate) -> Command:
+        """Persiste uma nova comanda e a retorna com relacionamentos carregados."""
         command = Command.model_validate(data)
         self.session.add(command)
         await self.session.commit()
@@ -22,6 +25,7 @@ class CommandRepository:
         return created or command
 
     async def get_by_id(self, command_id: int) -> Optional[Command]:
+        """Retorna uma comanda pelo ID com cliente e itens carregados, ou None."""
         statement = (
             select(Command)
             .where(Command.id == command_id)
@@ -34,6 +38,7 @@ class CommandRepository:
         return result.scalar_one_or_none()
 
     async def list_all(self, client_id: int | None = None, status: str | None = None):
+        """Retorna statement de listagem de comandas com filtros opcionais por cliente e status."""
         statement = (
             select(Command)
             .options(
@@ -49,6 +54,7 @@ class CommandRepository:
         return statement
 
     async def update(self, command: Command, data: CommandUpdate) -> Command:
+        """Atualiza os campos fornecidos de uma comanda existente."""
         update_data = data.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(command, key, value)
@@ -59,5 +65,6 @@ class CommandRepository:
         return updated or command
 
     async def delete(self, command: Command) -> None:
+        """Remove uma comanda do banco de dados."""
         await self.session.delete(command)
         await self.session.commit()

@@ -5,6 +5,8 @@ from sqlmodel import Field, Relationship, SQLModel
 
 
 class Client(SQLModel, table=True):
+    """Representa um cliente do estabelecimento."""
+
     __tablename__ = "clients"
 
     id: Optional[int] = Field(default=None, primary_key=True)

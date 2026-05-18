@@ -10,6 +10,8 @@ class TableStatus(str, Enum):
 
 
 class Table(SQLModel, table=True):
+    """Representa uma mesa física do estabelecimento."""
+
     __tablename__ = "tables"
 
     id: Optional[int] = Field(default=None, primary_key=True)

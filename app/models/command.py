@@ -12,6 +12,8 @@ class CommandStatus(str, Enum):
 
 
 class Command(SQLModel, table=True):
+    """Representa uma comanda aberta por um cliente, podendo estar vinculada a uma mesa."""
+
     __tablename__ = "commands"
 
     id: Optional[int] = Field(default=None, primary_key=True)
