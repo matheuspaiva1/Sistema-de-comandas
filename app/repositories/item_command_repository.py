@@ -1,7 +1,7 @@
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 
 from app.models.item_command import ItemCommand
@@ -23,7 +23,7 @@ class ItemCommandRepository:
         statement = (
             select(ItemCommand)
             .where(ItemCommand.id == item.id)
-            .options(selectinload(ItemCommand.product), selectinload(ItemCommand.command))
+            .options(joinedload(ItemCommand.product), joinedload(ItemCommand.command))
         )
         result = await self.session.execute(statement)
         return result.scalar_one()
@@ -33,14 +33,14 @@ class ItemCommandRepository:
         statement = (
             select(ItemCommand)
             .where(ItemCommand.id == item_id)
-            .options(selectinload(ItemCommand.product), selectinload(ItemCommand.command))
+            .options(joinedload(ItemCommand.product), joinedload(ItemCommand.command))
         )
         result = await self.session.execute(statement)
         return result.scalar_one_or_none()
 
     async def list_all(self, command_id: int | None = None, product_id: int | None = None):
         """Retorna statement de listagem de itens com filtros opcionais por comanda e produto."""
-        statement = select(ItemCommand).options(selectinload(ItemCommand.product)).order_by(ItemCommand.id.desc())
+        statement = select(ItemCommand).options(joinedload(ItemCommand.product)).order_by(ItemCommand.id.desc())
         if command_id is not None:
             statement = statement.where(ItemCommand.command_id == command_id)
         if product_id is not None:

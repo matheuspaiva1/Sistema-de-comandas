@@ -1,7 +1,7 @@
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 
 from app.models.command import Command
@@ -30,8 +30,8 @@ class CommandRepository:
             select(Command)
             .where(Command.id == command_id)
             .options(
-                selectinload(Command.client),
-                selectinload(Command.items).selectinload(ItemCommand.product),
+                joinedload(Command.client),
+                selectinload(Command.items).joinedload(ItemCommand.product),
             )
         )
         result = await self.session.execute(statement)
@@ -42,8 +42,8 @@ class CommandRepository:
         statement = (
             select(Command)
             .options(
-                selectinload(Command.client),
-                selectinload(Command.items).selectinload(ItemCommand.product),
+                joinedload(Command.client),
+                selectinload(Command.items).joinedload(ItemCommand.product),
             )
             .order_by(Command.opened_at.desc())
         )
