@@ -1,13 +1,16 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlmodel import SQLModel
+from pydantic import BaseModel
 
-class DocumentRead(SQLModel):
+
+class DocumentRead(BaseModel):
     id: UUID
-    product_id: int
+    product_id: str
     original_filename: str
     content_type: str
     extension: str
     size_bytes: int
     created_at: datetime
+
+    model_config = {"from_attributes": True}

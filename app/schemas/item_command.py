@@ -1,25 +1,28 @@
-from sqlmodel import SQLModel
+from typing import Optional
 
+from pydantic import BaseModel
+
+from app.schemas import PyObjectId
 from app.schemas.product import ProductRead
 
 
-class ItemCommandCreate(SQLModel):
-    command_id: int
-    product_id: int
+class ItemCommandCreate(BaseModel):
+    product_id: PyObjectId
     quantity: int
     unit_price: float
+    observation: Optional[str] = None
 
 
-class ItemCommandUpdate(SQLModel):
-    product_id: int | None = None
-    quantity: int | None = None
-    unit_price: float | None = None
+class ItemCommandUpdate(BaseModel):
+    quantity: Optional[int] = None
+    unit_price: Optional[float] = None
+    observation: Optional[str] = None
 
 
-class ItemCommandRead(SQLModel):
-    id: int
-    command_id: int
-    product_id: int
+class ItemCommandRead(BaseModel):
     quantity: int
     unit_price: float
-    product: ProductRead | None = None
+    observation: Optional[str] = None
+    product: Optional[ProductRead] = None
+
+    model_config = {"from_attributes": True}
