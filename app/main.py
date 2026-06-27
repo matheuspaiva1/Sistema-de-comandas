@@ -16,8 +16,8 @@ from app.api.errors.handlers import register_error_handlers
 
 app = FastAPI(
     title="Sistema de Comandas",
-    description="Sistema de Comandas com FastAPI, SQLModel e persistência relacional",
-    version="1.0.0",
+    description="Sistema de Comandas com FastAPI, Beanie e MongoDB",
+    version="2.0.0",
     openapi_tags=[
         {
             "name": "Produtos",

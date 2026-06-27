@@ -1,4 +1,4 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+from beanie import PydanticObjectId
 
 from app.api.errors.exceptions import EntityNotFoundException
 from app.models.payment import Payment
@@ -8,41 +8,32 @@ from app.schemas.payment import PaymentCreate, PaymentUpdate
 
 
 class PaymentService:
-    """
-    Serviço responsável pelo fluxo de pagamentos de Comandas.
-    
-    Permite registrar novos pagamentos vinculados a comandas existentes,
-    assim como consultar, atualizar e excluir históricos de pagamentos.
-    """
-    def __init__(self, session: AsyncSession) -> None:
-        self.repo = PaymentRepository(session)
-        self.command_repo = CommandRepository(session)
+    """Lógica de negócios para pagamentos de Comandas."""
+
+    def __init__(self) -> None:
+        self.repo = PaymentRepository()
+        self.command_repo = CommandRepository()
 
     async def create_payment(self, data: PaymentCreate) -> Payment:
-        """Valida a existência da comanda e registra um novo pagamento."""
-        if data.command_id:
-            command = await self.command_repo.get_by_id(data.command_id)
-            if not command:
-                raise EntityNotFoundException("Comanda", data.command_id)
-        return await self.repo.create(data)
+        command_id = PydanticObjectId(data.command_id)
+        command = await self.command_repo.get_by_id(command_id)
+        if not command:
+            raise EntityNotFoundException("Comanda", data.command_id)
+        return await self.repo.create(command, data)
 
-    async def list_payments(self):
-        """Retorna lista paginada de todos os pagamentos."""
+    async def list_payments(self) -> list[Payment]:
         return await self.repo.list_all()
 
-    async def get_payment(self, payment_id: int) -> Payment:
-        """Retorna um pagamento pelo ID ou lança EntityNotFoundException."""
+    async def get_payment(self, payment_id: PydanticObjectId) -> Payment:
         payment = await self.repo.get_by_id(payment_id)
         if not payment:
-            raise EntityNotFoundException("Pagamento", payment_id)
+            raise EntityNotFoundException("Pagamento", str(payment_id))
         return payment
 
-    async def update_payment(self, payment_id: int, data: PaymentUpdate) -> Payment:
-        """Atualiza os dados de um pagamento existente."""
+    async def update_payment(self, payment_id: PydanticObjectId, data: PaymentUpdate) -> Payment:
         payment = await self.get_payment(payment_id)
         return await self.repo.update(payment, data)
 
-    async def delete_payment(self, payment_id: int) -> None:
-        """Remove um pagamento pelo ID."""
+    async def delete_payment(self, payment_id: PydanticObjectId) -> None:
         payment = await self.get_payment(payment_id)
         await self.repo.delete(payment)

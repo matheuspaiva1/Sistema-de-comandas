@@ -1,51 +1,37 @@
-from typing import Sequence
+from beanie import PydanticObjectId
+from fastapi import APIRouter, Query, status
 
-from fastapi import APIRouter, status
-from fastapi_pagination import Page
-
-from app.api.deps import SessionDep
-from app.models.product import Product
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 from app.services.product_service import ProductService
 
-router = APIRouter(
-    prefix="/products",
-    tags=["Produtos"]
-)
+router = APIRouter(prefix="/products", tags=["Produtos"])
 
 
 @router.post("/", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
-async def create_product(data: ProductCreate, session: SessionDep) -> Product:
+async def create_product(data: ProductCreate):
     """Cria um novo produto no cardápio."""
-    service = ProductService(session)
-    return await service.create_product(data)
+    return await ProductService().create_product(data)
 
 
-@router.get("/", response_model=Page[ProductRead])
-async def list_products(session: SessionDep):
-    """Lista todos os produtos com paginação."""
-    service = ProductService(session)
-    return await service.list_products()
+@router.get("/", response_model=list[ProductRead])
+async def list_products(search: str | None = Query(default=None)):
+    """Lista produtos com filtro opcional por nome."""
+    return await ProductService().list_products(search=search)
 
 
 @router.get("/{product_id}", response_model=ProductRead)
-async def get_product(product_id: int, session: SessionDep) -> Product:
+async def get_product(product_id: PydanticObjectId):
     """Retorna um produto pelo ID."""
-    service = ProductService(session)
-    return await service.get_product(product_id)
+    return await ProductService().get_product(product_id)
 
 
 @router.put("/{product_id}", response_model=ProductRead)
-async def update_product(
-    product_id: int, data: ProductUpdate, session: SessionDep
-) -> Product:
+async def update_product(product_id: PydanticObjectId, data: ProductUpdate):
     """Atualiza os dados de um produto."""
-    service = ProductService(session)
-    return await service.update_product(product_id, data)
+    return await ProductService().update_product(product_id, data)
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_product(product_id: int, session: SessionDep) -> None:
+async def delete_product(product_id: PydanticObjectId):
     """Remove um produto pelo ID."""
-    service = ProductService(session)
-    await service.delete_product(product_id)
+    await ProductService().delete_product(product_id)
