@@ -1,8 +1,9 @@
+from io import BytesIO
 from uuid import UUID
 
 from beanie import PydanticObjectId
 from fastapi import APIRouter, File, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 
 from app.schemas.document import DocumentRead
 from app.services.document_service import DocumentService
@@ -21,8 +22,15 @@ async def get_document_metadata(document_id: UUID):
 @documents_router.get("/{document_id}/download")
 async def download_document(document_id: UUID):
     """Baixa ou exibe o arquivo do documento."""
-    file_path, content_type, original_filename = await DocumentService().download_document(document_id)
-    return FileResponse(path=file_path, media_type=content_type, filename=original_filename)
+    data, content_type, original_filename = await DocumentService().download_document(document_id)
+    return StreamingResponse(
+        content=BytesIO(data),
+        media_type=content_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{original_filename}"',
+            "Content-Length": str(len(data)),
+        },
+    )
 
 
 @documents_router.put("/{document_id}", response_model=DocumentRead)
