@@ -1,19 +1,18 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlmodel import Field, Relationship, SQLModel
+from beanie import Document
 
 
-class Client(SQLModel, table=True):
+class Client(Document):
     """Representa um cliente do estabelecimento."""
 
-    __tablename__ = "clients"
+    name: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    tax_id: Optional[str] = None
+    created_at: datetime = datetime.utcnow()
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(max_length=100, index=True)
-    phone: str | None = Field(default=None, max_length=20)
-    email: str | None = Field(default=None, max_length=255, index=True)
-    tax_id: str | None = Field(default=None, max_length=20, index=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
-    commands: list["Command"] = Relationship(back_populates="client")
+    class Settings:
+        name = "clients"
+        indexes = ["name", "email", "tax_id"]

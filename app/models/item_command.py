@@ -1,18 +1,15 @@
 from typing import Optional
 
-from sqlmodel import Field, Relationship, SQLModel
+from beanie import Link
+from pydantic import BaseModel
+
+from app.models.product import Product
 
 
-class ItemCommand(SQLModel, table=True):
-    """Representa um item de produto associado a uma comanda, com quantidade e preço unitário."""
+class ItemCommand(BaseModel):
+    """Item embutido dentro de uma comanda. Não tem coleção própria no banco."""
 
-    __tablename__ = "item_commands"
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    command_id: int = Field(foreign_key="commands.id", index=True)
-    product_id: int = Field(foreign_key="products.id", index=True)
-    quantity: int = Field(gt=0)
-    unit_price: float = Field(gt=0)
-
-    command: "Command" = Relationship(back_populates="items")
-    product: "Product" = Relationship(back_populates="item_commands")
+    product: Link[Product]
+    quantity: int
+    unit_price: float
+    observation: Optional[str] = None

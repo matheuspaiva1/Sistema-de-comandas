@@ -1,20 +1,23 @@
 from datetime import datetime
+from typing import Optional
 from uuid import UUID, uuid4
 
-from sqlmodel import Field, SQLModel, Relationship
+from beanie import Document, Link
 
-class Document(SQLModel, table=True):
-    """Representa os metadados de um arquivo físico associado a um produto."""
+from app.models.product import Product
 
-    __tablename__ = "documents"
 
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    product_id: int = Field(foreign_key="products.id", index=True)
+class FileDocument(Document):
+    """Metadados de um arquivo físico (imagem ou PDF) associado a um produto."""
+
+    id: UUID = uuid4()
+    product: Link[Product]
 
     original_filename: str
     content_type: str
     extension: str
     size_bytes: int
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = datetime.utcnow()
 
-    product: "Product" = Relationship(back_populates="documents")
+    class Settings:
+        name = "documents"

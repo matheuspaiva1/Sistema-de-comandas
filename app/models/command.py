@@ -2,7 +2,11 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from sqlmodel import Field, Relationship, SQLModel, AutoString
+from beanie import Document, Link
+
+from app.models.client import Client
+from app.models.item_command import ItemCommand
+from app.models.table import Table
 
 
 class CommandStatus(str, Enum):
@@ -11,23 +15,19 @@ class CommandStatus(str, Enum):
     CANCELADA = "CANCELADA"
 
 
-class Command(SQLModel, table=True):
+class Command(Document):
     """Representa uma comanda aberta por um cliente, podendo estar vinculada a uma mesa."""
 
-    __tablename__ = "commands"
+    client: Link[Client]
+    table: Optional[Link[Table]] = None
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    items: list[ItemCommand] = []
 
-    code: int = Field(default_factory=lambda: int(datetime.utcnow().timestamp()), index=True)
-    client_id: int = Field(foreign_key="clients.id", index=True)
-    status: CommandStatus = Field(default=CommandStatus.ABERTA, index=True, sa_type=AutoString)
-    opened_at: datetime = Field(default_factory=datetime.utcnow)
-    closed_at: datetime | None = None
-    total_amount: float = Field(default=0.0)
-    table_id: int | None = Field(default=None, foreign_key="tables.id", index=True)
+    status: CommandStatus = CommandStatus.ABERTA
+    total_amount: float = 0.0
+    opened_at: datetime = datetime.utcnow()
+    closed_at: Optional[datetime] = None
 
-    client: "Client" = Relationship(back_populates="commands")
-
-    table: Optional["Table"] = Relationship(back_populates="commands")
-    payments: list["Payment"] = Relationship(back_populates="command")
-    items: list["ItemCommand"] = Relationship(back_populates="command")
+    class Settings:
+        name = "commands"
+        indexes = ["status", "opened_at"]
