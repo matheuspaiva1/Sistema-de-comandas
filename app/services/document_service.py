@@ -60,12 +60,12 @@ class DocumentService:
     async def list_documents_by_product(self, product_id: PydanticObjectId) -> list[FileDocument]:
         return await self.repo.list_by_product(product_id)
 
-    async def download_document(self, document_id: UUID) -> tuple[str, str, str]:
-        document = await self.get_document(document_id)
-        file_path = await self.repo.get_file_path(document_id)
-        if file_path is None:
+    async def download_document(self, document_id: UUID) -> tuple[bytes, str, str]:
+        """Baixa o arquivo do MinIO e retorna (bytes, content_type, original_filename)."""
+        result = await self.repo.download_file(document_id)
+        if result is None:
             raise DocumentNotFoundException(document_id)
-        return str(file_path), document.content_type, document.original_filename
+        return result
 
     async def replace_document(self, document_id: UUID, file: UploadFile) -> FileDocument:
         await self.get_document(document_id)

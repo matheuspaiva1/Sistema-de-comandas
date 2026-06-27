@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
@@ -6,18 +5,14 @@ from beanie import PydanticObjectId
 
 from app.models.document import FileDocument
 from app.models.product import Product
-from app.core.config import settings
+from app.services.storage_service import StorageService
 
 
 class DocumentRepository:
     """Repositório de metadados de documentos. Arquivos físicos são gerenciados pelo StorageService (MinIO)."""
 
     def __init__(self) -> None:
-        self.upload_dir = Path(settings.upload_dir)
-        self.upload_dir.mkdir(parents=True, exist_ok=True)
-
-    def _file_path(self, document_id: UUID, extension: str) -> Path:
-        return self.upload_dir / f"{document_id}{extension}"
+        self.storage = StorageService()
 
     async def create(
         self,
@@ -36,7 +31,12 @@ class DocumentRepository:
             size_bytes=size_bytes,
         )
         await document.insert()
-        self._file_path(document.id, extension).write_bytes(file_content)
+        self.storage.upload(
+            document_id=document.id,
+            extension=extension,
+            data=file_content,
+            content_type=content_type,
+        )
         return document
 
     async def get_by_id(self, document_id: UUID) -> Optional[FileDocument]:
@@ -48,12 +48,19 @@ class DocumentRepository:
             fetch_links=True,
         ).sort("-created_at").to_list()
 
-    async def get_file_path(self, document_id: UUID) -> Optional[Path]:
+    async def download_file(self, document_id: UUID) -> Optional[tuple[bytes, str, str]]:
+        """Baixa o arquivo do MinIO e retorna (bytes, content_type, original_filename).
+
+        Returns:
+            Tupla com o conteúdo, MIME type e nome original, ou None se o documento não existir.
+        """
         document = await self.get_by_id(document_id)
         if not document:
             return None
-        path = self._file_path(document.id, document.extension)
-        return path if path.exists() else None
+        if not self.storage.exists(document.id, document.extension):
+            return None
+        data = self.storage.download(document.id, document.extension)
+        return data, document.content_type, document.original_filename
 
     async def update_file(
         self,
@@ -68,7 +75,7 @@ class DocumentRepository:
         if not document:
             return None
 
-        old_path = self._file_path(document.id, document.extension)
+        old_extension = document.extension
         await document.set({
             "original_filename": original_filename,
             "content_type": content_type,
@@ -76,19 +83,23 @@ class DocumentRepository:
             "size_bytes": size_bytes,
         })
 
-        new_path = self._file_path(document.id, extension)
-        if old_path != new_path and old_path.exists():
-            old_path.unlink()
-        new_path.write_bytes(file_content)
+        # Remove o arquivo antigo se a extensão mudou
+        if old_extension != extension:
+            self.storage.delete(document.id, old_extension)
+
+        self.storage.upload(
+            document_id=document.id,
+            extension=extension,
+            data=file_content,
+            content_type=content_type,
+        )
         return document
 
     async def delete(self, document_id: UUID) -> bool:
         document = await self.get_by_id(document_id)
         if not document:
             return False
-        path = self._file_path(document.id, document.extension)
-        if path.exists():
-            path.unlink()
+        self.storage.delete(document.id, document.extension)
         await document.delete()
         return True
 

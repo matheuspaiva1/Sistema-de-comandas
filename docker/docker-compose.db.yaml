@@ -8,10 +8,10 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
     volumes:
-      - mongo_data:/data/db
+      - minio_data_dev:/data/db
     networks:
       - comandas-network
-    restart: "no"
+    restart: on-failure
 
   mongo-express:
     image: mongo-express:latest
@@ -28,10 +28,10 @@ services:
       - mongo
     networks:
       - comandas-network
-    restart: "no"
+    restart: on-failure
 
 volumes:
-  mongo_data:
+  mongo_data_dev:
 
 networks:
   comandas-network:
