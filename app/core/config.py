@@ -1,3 +1,6 @@
+from typing import Optional
+
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -8,21 +11,22 @@ class Settings(BaseSettings):
     database_name: str = "yourmenu"
     upload_dir: str = "app/uploads"
 
-    # MongoDB
     mongo_host: str = "localhost"
     mongo_port: int = 27017
     mongo_root_user: str = "admin"
     mongo_root_password: str = "adminpassword"
+    mongo_url_override: Optional[str] = Field(default=None, validation_alias="MONGO_URL")
 
     @property
     def mongo_url(self) -> str:
-        """Monta a connection string do MongoDB a partir das variáveis individuais."""
+        """Retorna MONGO_URL quando definida ou monta a connection string do MongoDB."""
+        if self.mongo_url_override:
+            return self.mongo_url_override
         return (
             f"mongodb://{self.mongo_root_user}:{self.mongo_root_password}"
             f"@{self.mongo_host}:{self.mongo_port}/"
         )
 
-    # MinIO
     minio_host: str = "localhost"
     minio_port: int = 9000
     minio_root_user: str = "admin"

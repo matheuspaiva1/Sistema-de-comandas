@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from beanie.odm.fields import Link
+from pydantic import BaseModel, field_validator
 
 from app.models.command import CommandStatus
 from app.schemas import PyObjectId
@@ -30,5 +31,12 @@ class CommandRead(BaseModel):
     items: list[ItemCommandRead] = []
     client: Optional[ClientRead] = None
     table: Optional[TableRead] = None
+
+    @field_validator("client", "table", mode="before")
+    @classmethod
+    def ignore_unresolved_links(cls, value):
+        if isinstance(value, Link):
+            return None
+        return value
 
     model_config = {"from_attributes": True}
