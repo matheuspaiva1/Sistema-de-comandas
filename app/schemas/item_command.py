@@ -1,6 +1,7 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from beanie.odm.fields import Link
+from pydantic import BaseModel, field_validator
 
 from app.schemas import PyObjectId
 from app.schemas.product import ProductRead
@@ -24,5 +25,12 @@ class ItemCommandRead(BaseModel):
     unit_price: float
     observation: Optional[str] = None
     product: Optional[ProductRead] = None
+
+    @field_validator("product", mode="before")
+    @classmethod
+    def ignore_unresolved_link(cls, value):
+        if isinstance(value, Link):
+            return None
+        return value
 
     model_config = {"from_attributes": True}

@@ -1,4 +1,5 @@
 import enum
+from pymongo import IndexModel, TEXT
 
 from beanie import Document
 
@@ -23,4 +24,10 @@ class Product(Document):
 
     class Settings:
         name = "products"
-        indexes = ["name", "category", "active"]
+        indexes = [
+            IndexModel([("name", TEXT), ("description", TEXT)], name="product_text_index"),
+            "name",
+            "category",
+            "active",
+        ]
+
