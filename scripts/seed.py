@@ -3,6 +3,7 @@ Script compatível com o comando antigo de seed.
 Executa o orquestrador MongoDB definido na raiz do projeto.
 """
 
+import argparse
 import asyncio
 import importlib.util
 from pathlib import Path
