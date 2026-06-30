@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from beanie import Document
+from pydantic import Field
 
 
 class Client(Document):
@@ -11,7 +12,7 @@ class Client(Document):
     phone: Optional[str] = None
     email: Optional[str] = None
     tax_id: Optional[str] = None
-    created_at: datetime = datetime.utcnow()
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Settings:
         name = "clients"
