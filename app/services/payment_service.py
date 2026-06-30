@@ -2,7 +2,7 @@ from beanie import PydanticObjectId
 from beanie.odm.queries.find import FindMany
 
 from app.api.errors.exceptions import EntityNotFoundException
-from app.models.payment import Payment
+from app.models.payment import Payment, PaymentStatus
 from app.repositories.payment_repository import PaymentRepository
 from app.repositories.command_repository import CommandRepository
 from app.schemas.payment import PaymentCreate, PaymentUpdate
@@ -22,8 +22,13 @@ class PaymentService:
             raise EntityNotFoundException("Comanda", data.command_id)
         return await self.repo.create(command, data)
 
-    def list_payments(self) -> FindMany[Payment]:
-        return self.repo.list_all()
+    def list_payments(
+        self,
+        status: PaymentStatus | None = None,
+        command_id: str | None = None,
+    ) -> FindMany[Payment]:
+        parsed_command_id = PydanticObjectId(command_id) if command_id else None
+        return self.repo.list_all(status=status, command_id=parsed_command_id)
 
     async def get_payment(self, payment_id: PydanticObjectId) -> Payment:
         payment = await self.repo.get_by_id(payment_id)

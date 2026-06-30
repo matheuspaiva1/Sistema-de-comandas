@@ -25,8 +25,16 @@ class PaymentRepository:
             fetch_links=True,
         ).to_list()
 
-    def list_all(self, status: PaymentStatus | None = None) -> FindMany[Payment]:
-        query = {"status": status} if status else {}
+    def list_all(
+        self,
+        status: PaymentStatus | None = None,
+        command_id: PydanticObjectId | None = None,
+    ) -> FindMany[Payment]:
+        query: dict = {}
+        if status:
+            query["status"] = status
+        if command_id:
+            query["command.$id"] = command_id
         return Payment.find(query, fetch_links=True).sort("-_id")
 
     async def update(self, payment: Payment, data: PaymentUpdate) -> Payment:
