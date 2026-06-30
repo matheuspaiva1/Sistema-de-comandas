@@ -1,4 +1,5 @@
 from beanie import PydanticObjectId
+from beanie.odm.queries.find import FindMany
 
 from app.api.errors.exceptions import EntityNotFoundException
 from app.models.table import Table, TableStatus
@@ -15,8 +16,8 @@ class TableService:
     async def create_table(self, data: TableCreate) -> Table:
         return await self.repo.create(data)
 
-    async def list_tables(self, status: TableStatus | None = None) -> list[Table]:
-        return await self.repo.list_all(status=status)
+    def list_tables(self, status: TableStatus | None = None) -> FindMany[Table]:
+        return self.repo.list_all(status=status)
 
     async def get_table(self, table_id: PydanticObjectId) -> Table:
         table = await self.repo.get_by_id(table_id)

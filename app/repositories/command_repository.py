@@ -1,6 +1,7 @@
 from typing import Optional
 
 from beanie import PydanticObjectId
+from beanie.odm.queries.find import FindMany
 
 from app.models.command import Command, CommandStatus
 from app.models.client import Client
@@ -24,17 +25,17 @@ class CommandRepository:
     async def get_by_id(self, command_id: PydanticObjectId) -> Optional[Command]:
         return await Command.get(command_id, fetch_links=True)
 
-    async def list_all(
+    def list_all(
         self,
         client_id: PydanticObjectId | None = None,
         status: CommandStatus | None = None,
-    ) -> list[Command]:
+    ) -> FindMany[Command]:
         query: dict = {}
         if client_id:
             query["client.$id"] = client_id
         if status:
             query["status"] = status
-        return await Command.find(query, fetch_links=True).sort("-opened_at").to_list()
+        return Command.find(query, fetch_links=True).sort("-opened_at")
 
     async def add_item(self, command: Command, item: ItemCommand) -> Command:
         """Adiciona um item embutido à comanda e recalcula o total."""

@@ -1,4 +1,5 @@
 from beanie import PydanticObjectId
+from beanie.odm.queries.find import FindMany
 
 from app.models.product import Product, CategoryEnum
 from app.repositories.product_repository import ProductRepository
@@ -15,13 +16,13 @@ class ProductService:
     async def create_product(self, data: ProductCreate) -> Product:
         return await self.repo.create(data)
 
-    async def list_products(
+    def list_products(
         self,
         search: str | None = None,
         category: CategoryEnum | None = None,
         active_only: bool = True,
-    ) -> list[Product]:
-        return await self.repo.list_all(search=search, category=category, active_only=active_only)
+    ) -> FindMany[Product]:
+        return self.repo.list_all(search=search, category=category, active_only=active_only)
 
     async def get_product(self, product_id: PydanticObjectId) -> Product:
         product = await self.repo.get_by_id(product_id)

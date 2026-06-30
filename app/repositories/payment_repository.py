@@ -1,6 +1,7 @@
 from typing import Optional
 
 from beanie import PydanticObjectId
+from beanie.odm.queries.find import FindMany
 
 from app.models.payment import Payment, PaymentStatus
 from app.models.command import Command
@@ -24,9 +25,9 @@ class PaymentRepository:
             fetch_links=True,
         ).to_list()
 
-    async def list_all(self, status: PaymentStatus | None = None) -> list[Payment]:
+    def list_all(self, status: PaymentStatus | None = None) -> FindMany[Payment]:
         query = {"status": status} if status else {}
-        return await Payment.find(query, fetch_links=True).sort("-_id").to_list()
+        return Payment.find(query, fetch_links=True).sort("-_id")
 
     async def update(self, payment: Payment, data: PaymentUpdate) -> Payment:
         update_data = data.model_dump(exclude_unset=True)

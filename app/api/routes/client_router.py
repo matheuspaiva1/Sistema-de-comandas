@@ -1,5 +1,7 @@
 from beanie import PydanticObjectId
 from fastapi import APIRouter, Query, status
+from fastapi_pagination import Page
+from fastapi_pagination.ext.beanie import paginate
 
 from app.schemas.client import ClientCreate, ClientRead, ClientUpdate
 from app.services.client_service import ClientService
@@ -13,10 +15,10 @@ async def create_client(data: ClientCreate):
     return await ClientService().create_client(data)
 
 
-@router.get("/", response_model=list[ClientRead])
+@router.get("/", response_model=Page[ClientRead])
 async def list_clients(search: str | None = Query(default=None, max_length=100)):
     """Lista clientes com filtro opcional por nome."""
-    return await ClientService().list_clients(search=search)
+    return await paginate(ClientService().list_clients(search=search))
 
 
 @router.get("/{client_id}", response_model=ClientRead)

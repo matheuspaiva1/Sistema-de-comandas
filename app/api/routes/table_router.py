@@ -1,5 +1,7 @@
 from beanie import PydanticObjectId
 from fastapi import APIRouter, status
+from fastapi_pagination import Page
+from fastapi_pagination.ext.beanie import paginate
 
 from app.schemas.table import TableCreate, TableRead, TableUpdate
 from app.services.table_service import TableService
@@ -13,10 +15,10 @@ async def create_table(data: TableCreate):
     return await TableService().create_table(data)
 
 
-@router.get("/", response_model=list[TableRead])
+@router.get("/", response_model=Page[TableRead])
 async def list_tables():
     """Lista todas as mesas."""
-    return await TableService().list_tables()
+    return await paginate(TableService().list_tables())
 
 
 @router.get("/{table_id}", response_model=TableRead)

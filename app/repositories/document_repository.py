@@ -2,6 +2,7 @@ from typing import Optional
 from uuid import UUID
 
 from beanie import PydanticObjectId
+from beanie.odm.queries.find import FindMany
 
 from app.models.document import FileDocument
 from app.models.product import Product
@@ -12,7 +13,13 @@ class DocumentRepository:
     """Repositório de metadados de documentos. Arquivos físicos são gerenciados pelo StorageService (MinIO)."""
 
     def __init__(self) -> None:
-        self.storage = StorageService()
+        self._storage: StorageService | None = None
+
+    @property
+    def storage(self) -> StorageService:
+        if self._storage is None:
+            self._storage = StorageService()
+        return self._storage
 
     async def create(
         self,
@@ -42,11 +49,11 @@ class DocumentRepository:
     async def get_by_id(self, document_id: UUID) -> Optional[FileDocument]:
         return await FileDocument.find_one({"_id": document_id}, fetch_links=True)
 
-    async def list_by_product(self, product_id: PydanticObjectId) -> list[FileDocument]:
-        return await FileDocument.find(
+    def list_by_product(self, product_id: PydanticObjectId) -> FindMany[FileDocument]:
+        return FileDocument.find(
             FileDocument.product.id == product_id, 
             fetch_links=True,
-        ).sort("-created_at").to_list()
+        ).sort("-created_at")
 
     async def download_file(self, document_id: UUID) -> Optional[tuple[bytes, str, str]]:
         """Baixa o arquivo do MinIO e retorna (bytes, content_type, original_filename).
@@ -83,7 +90,6 @@ class DocumentRepository:
             "size_bytes": size_bytes,
         })
 
-        # Remove o arquivo antigo se a extensão mudou
         if old_extension != extension:
             self.storage.delete(document.id, old_extension)
 
@@ -104,7 +110,7 @@ class DocumentRepository:
         return True
 
     async def delete_by_product(self, product_id: PydanticObjectId) -> int:
-        documents = await self.list_by_product(product_id)
+        documents = await self.list_by_product(product_id).to_list()
         count = 0
         for doc in documents:
             if await self.delete(doc.id):

@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from beanie import PydanticObjectId
+from beanie.odm.queries.find import FindMany
 
 from app.api.errors.exceptions import EntityNotFoundException
 from app.models.command import Command, CommandStatus
@@ -37,13 +38,13 @@ class CommandService:
 
         return await self.repo.create(client, data, table)
 
-    async def list_commands(
+    def list_commands(
         self,
         client_id: Optional[str] = None,
         status: Optional[CommandStatus] = None,
-    ) -> list[Command]:
+    ) -> FindMany[Command]:
         parsed_client_id = PydanticObjectId(client_id) if client_id else None
-        return await self.repo.list_all(client_id=parsed_client_id, status=status)
+        return self.repo.list_all(client_id=parsed_client_id, status=status)
 
     async def get_command(self, command_id: PydanticObjectId) -> Command:
         command = await self.repo.get_by_id(command_id)

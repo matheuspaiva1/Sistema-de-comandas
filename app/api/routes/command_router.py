@@ -1,5 +1,7 @@
 from beanie import PydanticObjectId
 from fastapi import APIRouter, Query, status
+from fastapi_pagination import Page
+from fastapi_pagination.ext.beanie import paginate
 
 from app.models.command import CommandStatus
 from app.schemas.command import CommandCreate, CommandRead, CommandUpdate
@@ -15,13 +17,13 @@ async def create_command(data: CommandCreate):
     return await CommandService().create_command(data)
 
 
-@router.get("/", response_model=list[CommandRead])
+@router.get("/", response_model=Page[CommandRead])
 async def list_commands(
     client_id: str | None = Query(default=None),
     status_: CommandStatus | None = Query(default=None, alias="status"),
 ):
     """Lista comandas com filtros opcionais por cliente e status."""
-    return await CommandService().list_commands(client_id=client_id, status=status_)
+    return await paginate(CommandService().list_commands(client_id=client_id, status=status_))
 
 
 @router.get("/{command_id}", response_model=CommandRead)

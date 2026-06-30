@@ -1,4 +1,5 @@
 from beanie import PydanticObjectId
+from beanie.odm.queries.find import FindMany
 
 from app.api.errors.exceptions import EntityNotFoundException
 from app.models.payment import Payment
@@ -21,8 +22,8 @@ class PaymentService:
             raise EntityNotFoundException("Comanda", data.command_id)
         return await self.repo.create(command, data)
 
-    async def list_payments(self) -> list[Payment]:
-        return await self.repo.list_all()
+    def list_payments(self) -> FindMany[Payment]:
+        return self.repo.list_all()
 
     async def get_payment(self, payment_id: PydanticObjectId) -> Payment:
         payment = await self.repo.get_by_id(payment_id)

@@ -1,4 +1,5 @@
 from beanie import PydanticObjectId
+from beanie.odm.queries.find import FindMany
 
 from app.api.errors.exceptions import EntityNotFoundException
 from app.models.client import Client
@@ -15,8 +16,8 @@ class ClientService:
     async def create_client(self, data: ClientCreate) -> Client:
         return await self.repo.create(data)
 
-    async def list_clients(self, search: str | None = None) -> list[Client]:
-        return await self.repo.list_all(search=search)
+    def list_clients(self, search: str | None = None) -> FindMany[Client]:
+        return self.repo.list_all(search=search)
 
     async def get_client(self, client_id: PydanticObjectId) -> Client:
         client = await self.repo.get_by_id(client_id)

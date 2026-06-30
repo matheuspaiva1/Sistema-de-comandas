@@ -1,5 +1,7 @@
 from beanie import PydanticObjectId
 from fastapi import APIRouter, Query, status
+from fastapi_pagination import Page
+from fastapi_pagination.ext.beanie import paginate
 
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 from app.services.product_service import ProductService
@@ -13,10 +15,10 @@ async def create_product(data: ProductCreate):
     return await ProductService().create_product(data)
 
 
-@router.get("/", response_model=list[ProductRead])
+@router.get("/", response_model=Page[ProductRead])
 async def list_products(search: str | None = Query(default=None)):
     """Lista produtos com filtro opcional por nome."""
-    return await ProductService().list_products(search=search)
+    return await paginate(ProductService().list_products(search=search))
 
 
 @router.get("/{product_id}", response_model=ProductRead)

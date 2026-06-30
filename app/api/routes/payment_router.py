@@ -1,5 +1,7 @@
 from beanie import PydanticObjectId
 from fastapi import APIRouter, status
+from fastapi_pagination import Page
+from fastapi_pagination.ext.beanie import paginate
 
 from app.schemas.payment import PaymentCreate, PaymentRead, PaymentUpdate
 from app.services.payment_service import PaymentService
@@ -13,10 +15,10 @@ async def create_payment(data: PaymentCreate):
     return await PaymentService().create_payment(data)
 
 
-@router.get("/", response_model=list[PaymentRead])
+@router.get("/", response_model=Page[PaymentRead])
 async def list_payments():
     """Lista todos os pagamentos."""
-    return await PaymentService().list_payments()
+    return await paginate(PaymentService().list_payments())
 
 
 @router.get("/{payment_id}", response_model=PaymentRead)

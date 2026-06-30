@@ -1,6 +1,7 @@
 from typing import Optional
 
 from beanie import PydanticObjectId
+from beanie.odm.queries.find import FindMany
 
 from app.models.product import Product, CategoryEnum
 from app.schemas.product import ProductCreate, ProductUpdate
@@ -17,12 +18,12 @@ class ProductRepository:
     async def get_by_id(self, product_id: PydanticObjectId) -> Optional[Product]:
         return await Product.get(product_id)
 
-    async def list_all(
+    def list_all(
         self,
         search: str | None = None,
         category: CategoryEnum | None = None,
         active_only: bool = True,
-    ) -> list[Product]:
+    ) -> FindMany[Product]:
         query: dict = {}
         if active_only:
             query["active"] = True
@@ -30,7 +31,7 @@ class ProductRepository:
             query["category"] = category
         if search:
             query["name"] = {"$regex": search, "$options": "i"}
-        return await Product.find(query).sort("name").to_list()
+        return Product.find(query).sort("name")
 
     async def update(self, product: Product, data: ProductUpdate) -> Product:
         update_data = data.model_dump(exclude_unset=True)

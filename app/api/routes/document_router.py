@@ -3,6 +3,8 @@ from uuid import UUID
 
 from beanie import PydanticObjectId
 from fastapi import APIRouter, File, UploadFile, status
+from fastapi_pagination import Page
+from fastapi_pagination.ext.beanie import paginate
 from fastapi.responses import StreamingResponse
 
 from app.schemas.document import DocumentRead
@@ -57,8 +59,7 @@ async def upload_document(product_id: PydanticObjectId, file: UploadFile = File(
     return DocumentRead.model_validate(document, from_attributes=True)
 
 
-@products_documents_router.get("/{product_id}/documents", response_model=list[DocumentRead])
+@products_documents_router.get("/{product_id}/documents", response_model=Page[DocumentRead])
 async def list_product_documents(product_id: PydanticObjectId):
     """Lista os documentos de um produto."""
-    documents = await DocumentService().list_documents_by_product(product_id)
-    return [DocumentRead.model_validate(d, from_attributes=True) for d in documents]
+    return await paginate(DocumentService().list_documents_by_product(product_id))

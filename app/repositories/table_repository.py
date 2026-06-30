@@ -1,6 +1,7 @@
 from typing import Optional
 
 from beanie import PydanticObjectId
+from beanie.odm.queries.find import FindMany
 
 from app.models.table import Table, TableStatus
 from app.schemas.table import TableCreate, TableUpdate
@@ -17,9 +18,9 @@ class TableRepository:
     async def get_by_id(self, table_id: PydanticObjectId) -> Optional[Table]:
         return await Table.get(table_id)
 
-    async def list_all(self, status: TableStatus | None = None) -> list[Table]:
+    def list_all(self, status: TableStatus | None = None) -> FindMany[Table]:
         query = {"status": status} if status else {}
-        return await Table.find(query).sort("number").to_list()
+        return Table.find(query).sort("number")
 
     async def update(self, table: Table, data: TableUpdate) -> Table:
         update_data = data.model_dump(exclude_unset=True)
