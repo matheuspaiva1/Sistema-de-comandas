@@ -266,9 +266,8 @@ async def seed_payments(commands: list[Command], minimum_count: int = 120) -> li
 async def seed_documents(products: list[Product], count: int = 120) -> list[Document]:
     """Cria metadados de documentos associados aos produtos."""
     documents = []
-    extensions = [".pdf", ".jpg", ".jpeg", ".png"]
+    extensions = [".jpg", ".jpeg", ".png"]
     content_types = {
-        ".pdf": "application/pdf",
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
         ".png": "image/png",

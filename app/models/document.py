@@ -25,9 +25,7 @@ class FileDocument(Document):
         """Retorna o ID do produto como string para serialização no schema DocumentRead."""
         if isinstance(self.product, Product):
             return str(self.product.id)
-        # Quando o link não foi resolvido (fetch_links=False), o Beanie
-        # armazena internamente uma referência DBRef/Link que contém o ref.
-        return str(self.product.ref.id)  # type: ignore[union-attr]
-
+        return str(self.product.ref.id)
+    
     class Settings:
         name = "documents"
