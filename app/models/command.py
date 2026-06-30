@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Optional
 
 from beanie import Document, Link
+from pydantic import Field
 
 from app.models.client import Client
 from app.models.item_command import ItemCommand
@@ -25,7 +26,7 @@ class Command(Document):
 
     status: CommandStatus = CommandStatus.ABERTA
     total_amount: float = 0.0
-    opened_at: datetime = datetime.utcnow()
+    opened_at: datetime = Field(default_factory=datetime.utcnow)
     closed_at: Optional[datetime] = None
 
     class Settings:

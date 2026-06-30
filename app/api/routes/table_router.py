@@ -1,8 +1,9 @@
 from beanie import PydanticObjectId
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Query, status
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
 
+from app.models.table import TableStatus
 from app.schemas.table import TableCreate, TableRead, TableUpdate
 from app.services.table_service import TableService
 
@@ -16,9 +17,9 @@ async def create_table(data: TableCreate):
 
 
 @router.get("/", response_model=Page[TableRead])
-async def list_tables():
-    """Lista todas as mesas."""
-    return await paginate(TableService().list_tables())
+async def list_tables(status_: TableStatus | None = Query(default=None, alias="status")):
+    """Lista mesas com filtro opcional por status (LIVRE ou OCUPADA)."""
+    return await paginate(TableService().list_tables(status=status_))
 
 
 @router.get("/{table_id}", response_model=TableRead)

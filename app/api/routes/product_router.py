@@ -3,6 +3,7 @@ from fastapi import APIRouter, Query, status
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
 
+from app.models.product import CategoryEnum
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 from app.services.product_service import ProductService
 
@@ -16,9 +17,13 @@ async def create_product(data: ProductCreate):
 
 
 @router.get("/", response_model=Page[ProductRead])
-async def list_products(search: str | None = Query(default=None)):
-    """Lista produtos com filtro opcional por nome."""
-    return await paginate(ProductService().list_products(search=search))
+async def list_products(
+    search: str | None = Query(default=None),
+    category: CategoryEnum | None = Query(default=None),
+    active_only: bool = Query(default=True),
+):
+    """Lista produtos com filtros opcionais por nome, categoria e status de ativação."""
+    return await paginate(ProductService().list_products(search=search, category=category, active_only=active_only))
 
 
 @router.get("/{product_id}", response_model=ProductRead)

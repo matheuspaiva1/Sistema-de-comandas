@@ -64,11 +64,20 @@ class ReportsRepository:
         pipeline = [
             {"$unwind": "$items"},
             {
+                "$lookup": {
+                    "from": "products",
+                    "localField": "items.product.$id",
+                    "foreignField": "_id",
+                    "as": "product_data"
+                }
+            },
+            {"$unwind": "$product_data"},
+            {
                 "$group": {
-                    "_id": "$items.product.category",
+                    "_id": "$product_data.category",
                     "total_revenue": {"$sum": {"$multiply": ["$items.quantity", "$items.unit_price"]}},
                     "total_quantity": {"$sum": "$items.quantity"},
-                    "distinct_products": {"$addToSet": "$items.product.name"}
+                    "distinct_products": {"$addToSet": "$product_data.name"}
                 }
             },
             {
