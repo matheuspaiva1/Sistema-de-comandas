@@ -1,208 +1,190 @@
-# Sistema de Comandas API (SQLModel + Async)
+# Sistema de Comandas API
 
-![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
-![FastAPI](https://img.shields.io/badge/FastAPI-005571.svg?style=for-the-badge&logo=fastapi)
-![uv](https://img.shields.io/badge/uv-%23DE5FE9.svg?style=for-the-badge&logo=uv&logoColor=white)
-![Pydantic](https://img.shields.io/badge/pydantic-%23E92063.svg?style=for-the-badge&logo=pydantic&logoColor=white)
-![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
-![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
+API assíncrona para gerenciamento de comandas de consumo em restaurantes, bares e cafés. O projeto usa FastAPI, Beanie ODM e MongoDB para persistir clientes, mesas, produtos, comandas, pagamentos e documentos de produtos.
 
+## Tecnologias
 
-Este projeto consiste em uma API assíncrona robusta para o gerenciamento de comandas de consumo em estabelecimentos comerciais (como restaurantes, bares e cafés). Ele foi desenvolvido para a disciplina de **Desenvolvimento de Software para Persistência** (Trabalho Prático - Parte II), utilizando tecnologias modernas do ecossistema Python para persistência relacional assíncrona e upload de mídias físicas.
+* **FastAPI** para API REST e documentação OpenAPI/Swagger.
+* **Beanie ODM** e **Motor** para acesso assíncrono ao MongoDB.
+* **MongoDB** como banco principal.
+* **Pydantic** para validação e serialização.
+* **fastapi-pagination** para paginação em consultas.
+* **Faker pt_BR** para carga realista de dados.
+* **uv** para dependências e execução.
 
----
-
-## Tecnologias Utilizadas
-
-*   **[FastAPI](https://fastapi.tiangolo.com/)**: Construção da API REST ágil, moderna e autocomprovada com OpenAPI/Swagger.
-*   **[SQLModel](https://sqlmodel.tiangolo.com/)**: Abstração ORM que unifica o poder de validação do Pydantic com a flexibilidade relacional do SQLAlchemy.
-*   **[Alembic](https://alembic.sqlalchemy.org/)**: Controle de versão e migrações do banco de dados executado de forma 100% assíncrona.
-*   **SQLite & PostgreSQL**: Compatibilidade total de schemas. A alteração de persistência ocorre bastando mudar uma linha no arquivo `.env`.
-*   **[UV](https://github.com/astral-sh/uv)**: Gerenciador ultra-rápido de dependências e ambiente virtual do ecossistema Python.
-*   **[fastapi-pagination](https://github.com/uriyyo/fastapi-pagination)**: Paginação integrada de alta performance aplicada diretamente no banco de dados para evitar vazamento de memória RAM.
-
----
-
-## Modelo de Dados (ERD)
-
-O sistema conta com **7 entidades interconectadas**, atendendo aos requisitos mínimos de relacionamentos Um-para-Muitos ($1 \leftrightarrow N$) e Muitos-para-Muitos ($N \leftrightarrow M$):
+## Modelo de Dados
 
 ```mermaid
----
-config:
-  layout: elk
-  look: classic
-  theme: dark
----
 erDiagram
-    Cliente ||--o{ Comanda : "possui"
-    Comanda ||--o{ ItemComanda : "contém"
-    Mesa ||--o{ Comanda : "vinculada_a"
-    Produto ||--o{ ItemComanda : "associado_a"
-    Produto ||--o{ Documento : "possui"
-    Comanda ||--o{ Pagamento : "recebe"
+    Client ||--o{ Command : "abre"
+    Table ||--o{ Command : "recebe"
+    Command ||--o{ ItemCommand : "contem"
+    Product ||--o{ ItemCommand : "vendido_em"
+    Product ||--o{ Document : "possui"
+    Command ||--o{ Payment : "recebe"
 
-    Cliente {
-        int id PK "Autoincrement"
-        string nome "index"
-        string telefone
-        string email "index"
-        string identificador
-        datetime criado_em
-        int comanda_id FK "comandas.is"
+    Client {
+        ObjectId id
+        string name
+        string phone
+        string email
+        string tax_id
+        datetime created_at
     }
 
-    Mesa {
-        int id PK "Autoincrement"
-        int numero "unique"
-        string nome
-        int assentos
-        string local
-        string status "LIVRE/OCUPADA"
-        int comanda_id FK "comandas.id"
+    Table {
+        ObjectId id
+        int number
+        string name
+        int seats
+        string location
+        string status
     }
 
-    Comanda {
-        int id PK "Autoincrement"
-        string codigo "index"
-        string status "ABERTA/FECHADA/CANCELADA"
-        datetime aberta_em
-        datetime fechada_em
-        float total_conta
-        int cliente_id FK "clientes.id"
-        int mesa_id FK "mesa.id"
+    Product {
+        ObjectId id
+        string name
+        string description
+        string category
+        float price
+        bool active
     }
 
-    ItemComanda {
-        int id PK "Autoincrement"
-        int comanda_id FK "Comandas.id"
-        int produto_id FK "Produtos.id"
+    Command {
+        ObjectId id
+        DBRef client
+        DBRef table
+        list items
+        string status
+        float total_amount
+        datetime opened_at
+        datetime closed_at
+    }
+
+    ItemCommand {
+        DBRef product
         int quantity
-        float preco_unitario
+        float unit_price
+        string observation
     }
 
-    Produto {
-        int id PK "Autoincrement"
-        string nome
-        string descricao
-        string categoria "BEBIDA/PRATO_PRINCIPAL/etc"
-        float preco
-        bool ativo
+    Payment {
+        ObjectId id
+        DBRef command
+        float amount
+        string method
+        string status
+        datetime paid_at
     }
 
-    Documento {
-        UUID id PK "UUIDv4"
-        int Produto_id FK "Produtos.id"
-        string arquivo
-        string tipo
-        string extensao
-        int tamanho
-        datetime criado_em
-    }
-
-    Pagamento {
-        int id PK "Autoincrement"
-        int comanda_id FK "comanda.id"
-        float valor
-        string metodo "DINHEIRO/CARTAO/PIX"
-        string status "PAGO/ESTORNADO"
-        datetime pago_em
+    Document {
+        UUID id
+        DBRef product
+        string original_filename
+        string content_type
+        string extension
+        int size_bytes
+        datetime created_at
     }
 ```
 
-### Entidades do Domínio:
-1.  **[Client](./app/models/client.py)**: Clientes do estabelecimento.
-2.  **[Table](./app/models/table.py)**: Mesas físicas onde os clientes realizam o consumo.
-3.  **[Command](./app/models/command.py)**: Controle central da comanda aberta com seu status e acumuladores.
-4.  **[ItemCommand](./app/models/item_command.py)**: Itens consumidos associados à comanda, encapsulando quantidade e o histórico do preço unitário de venda.
-5.  **[Product](./app/models/product.py)**: Produtos do cardápio.
-6.  **[Payment](./app/models/payment.py)**: Pagamentos parciais ou totais aplicados à comanda.
-7.  **[Document](./app/models/document.py)**: Anexos e fotos associados a produtos do cardápio, onde os arquivos físicos residem de forma local no sistema e o banco de dados armazena apenas seus metadados.
-
----
-
-## Estrutura de Diretórios
-
-O projeto está estruturado de forma modular e altamente extensível:
+## Estrutura
 
 ```text
-├── alembic.ini                   # Configurações do migrador Alembic
-├── migrations/                   # Scripts de migração de banco gerados
-├── app/
-│   ├── api/
-│   │   ├── errors/               # Middleware de erros e exception handlers globais
-│   │   └── routes/               # Rotas/Endpoints por domínio
-│   ├── core/
-│   │   ├── config.py             # Configurações do app através do .env
-│   │   └── database.py           # Setup do motor e sessão assíncrona do SQLAlchemy
-│   ├── models/                   # Entidades SQLModel representativas das tabelas
-│   ├── repositories/             # Camada de persistência/acesso a dados genérica
-│   ├── schemas/                  # Validação Pydantic (Create, Update, Response)
-│   └── services/                 # Regras de negócios e transações
-├── uploads/                      # Pasta local padrão para armazenamento físico de documentos
-├── scripts/
-│   ├── seed.py                   # Script de carga inicial (1.000+ registros via Faker pt_BR)
-│   └── seeds/                    # Sub-seeds modulares
-├── pyproject.toml                # Dependências e declaração de ferramentas do projeto
-└── uv.lock                       # Arquivo de integridade e travamento do UV
+app/
+  api/routes/          Rotas por domínio e /analytics
+  core/                Configuração e inicialização do MongoDB
+  models/              Documentos Beanie
+  repositories/        Consultas e agregações
+  schemas/             Schemas Pydantic
+  services/            Regras de negócio
+docker/                Arquivos auxiliares de infraestrutura
+seed.py                Carga de dados realistas
+pyproject.toml         Dependências do projeto
 ```
 
----
+## Configuração
 
-## Instalação e Execução
+Instale as dependências:
 
-### 1. Pré-requisitos
-Certifique-se de possuir o **Python 3.10+** e o gerenciador de pacotes **`uv`** instalado em sua máquina.
-
-### 2. Clonando e Instalando Dependências
-Com o `uv` instalado, execute no terminal para sincronizar as dependências e o ambiente virtual:
 ```bash
 uv sync
 ```
 
-### 3. Configuração do `.env`
-Crie ou edite o arquivo `.env` na raiz do projeto contendo as credenciais. Você pode alternar o driver de persistência comentando e descomentando as linhas:
+Crie ou ajuste o arquivo `.env` na raiz. Você pode informar a URL completa:
+
 ```ini
-# Para persistência em SQLite Local:
-DATABASE_URL=sqlite+aiosqlite:///./comandas.db
-
-# Para persistência em PostgreSQL (Nuvem ou Docker):
-# DATABASE_URL=postgresql+asyncpg://usuario:senha@host:porta/banco
+MONGO_URL=mongodb://admin:adminpassword@localhost:27017/
+DATABASE_NAME=yourmenu
 ```
 
-### 4. Executando as Migrações
-Execute o comando a seguir para aplicar as atualizações do banco assincronamente através do Alembic:
+Ou usar as variáveis separadas:
+
+```ini
+MONGO_HOST=localhost
+MONGO_PORT=27017
+MONGO_ROOT_USER=admin
+MONGO_ROOT_PASSWORD=adminpassword
+DATABASE_NAME=yourmenu
+```
+
+## MongoDB
+
+Com Docker, suba um MongoDB local compatível com o `.env`:
+
 ```bash
-uv run alembic upgrade head
+docker run --name sistema-comandas-mongo -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=adminpassword -d mongo:7
 ```
 
-### 5. Carga de Dados (Seeding Realista)
-Popule o banco de dados configurado no `.env` com no mínimo **1.000 registros realistas** gerados através da biblioteca `Faker` (localização `pt_BR`):
+Se já existir um MongoDB local, basta apontar `MONGO_URL` para ele.
+
+## Seed
+
+Popule o banco com dados realistas:
+
 ```bash
-uv run python scripts/seed.py
+uv run python seed.py
 ```
 
-### 6. Executando o Servidor de Desenvolvimento
-Inicie a aplicação utilizando o Uvicorn:
+Por padrão o script limpa as coleções antes de inserir novos dados. Para manter os dados existentes e adicionar novos registros:
+
+```bash
+uv run python seed.py --no-clean
+```
+
+O seed cria clientes, mesas, produtos, documentos, comandas com itens consistentes e pagamentos vinculados.
+
+## Executando
+
 ```bash
 uv run uvicorn app.main:app --reload
 ```
-Acesse a documentação interativa Swagger no endereço:
-[http://localhost:8000/docs](http://localhost:8000/docs)
 
----
+Documentação interativa:
 
-## Endpoints de Consultas Analíticas e Relatórios
+```text
+http://localhost:8000/docs
+```
 
-Além do CRUD completo para todas as entidades principais do domínio com suporte a paginação de alto desempenho (`fastapi-pagination`) e carregamento de relacionamentos ansiosos (*eager loading* via `selectinload` e `joinedload`), a aplicação expõe endpoints dedicados para relatórios analíticos:
+## Rotas Analíticas
 
-*   **Filtros complexos**: Listagem de comandas por cliente ativo ou por período.
-*   **Busca textual parcial**: Localização de produtos ou clientes pelo nome parcial.
-*   **Agregações e Estatísticas**: Total arrecadado por comanda, ticket médio por mesa, contagem de comandas abertas, etc.
-*   **Upload e Download de Arquivos**: Endpoints específicos em `/produtos/{produto_id}/documents` para controle integral de mídias de produtos com persistência exclusiva de metadados.
+As rotas de relatórios ficam no prefixo `/analytics`:
 
----
+* `GET /analytics/commands/by-date-range`: comandas abertas ou fechadas dentro de um período, com paginação.
+* `GET /analytics/products/search`: busca textual em nome e descrição de produtos.
+* `GET /analytics/commands/summary`: listagem paginada de comandas ordenada por `opened_at`, `closed_at` ou `total_amount`.
+* `GET /analytics/commands/count`: total de comandas cadastradas.
+* `GET /analytics/commands/{command_id}`: consulta de uma comanda com relacionamentos resolvidos.
+* `GET /analytics/revenue-by-category`: faturamento e quantidade vendida por categoria.
+* `GET /analytics/client-ranking`: ranking de consumo de clientes em comandas fechadas.
+* `GET /analytics/table-stats`: faturamento, quantidade de comandas e ticket médio por mesa.
 
-## Membros e Divisão de Tarefas
+Exemplo:
 
-Consulte o arquivo **[divisao_tarefas.md](divisao_tarefas.md)** para mais detalhes de ownership sobre a arquitetura e componentes criados por cada membro.
+```bash
+curl "http://localhost:8000/analytics/commands/summary?sort_by=total_amount&order=desc&page=1&size=20"
+```
+
+## Observações
+
+O modelo `Product` declara um índice textual composto em `name` e `description` para habilitar busca full-text no MongoDB. A criação do índice ocorre durante a inicialização do Beanie.

@@ -1,47 +1,77 @@
 from datetime import datetime
+from typing import Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from beanie import PydanticObjectId
+from beanie.odm.queries.find import FindMany
 
 from app.api.errors.exceptions import EntityNotFoundException
-from app.models.command import Command
+from app.models.command import Command, CommandStatus
+from app.models.item_command import ItemCommand
 from app.repositories.command_repository import CommandRepository
+from app.repositories.client_repository import ClientRepository
+from app.repositories.table_repository import TableRepository
+from app.repositories.product_repository import ProductRepository
 from app.schemas.command import CommandCreate, CommandUpdate
+from app.schemas.item_command import ItemCommandCreate
 
 
 class CommandService:
-    """
-    Serviço responsável pelas operações de Comandas.
-    
-    Gerencia a abertura, encerramento de comandas (com registro automático
-    da data/hora de fechamento se o status mudar para FECHADA), além de
-    operações padrão de listagem, atualização e exclusão de comandas.
-    """
-    def __init__(self, session: AsyncSession) -> None:
-        self.repo = CommandRepository(session)
+    """Lógica de negócios para Comandas e seus itens embutidos."""
+
+    def __init__(self) -> None:
+        self.repo = CommandRepository()
+        self.client_repo = ClientRepository()
+        self.table_repo = TableRepository()
+        self.product_repo = ProductRepository()
 
     async def create_command(self, data: CommandCreate) -> Command:
-        """Cria e retorna uma nova comanda."""
-        return await self.repo.create(data)
+        client_id = PydanticObjectId(data.client_id)
+        client = await self.client_repo.get_by_id(client_id)
+        if not client:
+            raise EntityNotFoundException("Cliente", data.client_id)
 
-    async def list_commands(self, client_id: int | None = None, status: str | None = None):
-        """Retorna statement de listagem de comandas com filtros opcionais."""
-        return await self.repo.list_all(client_id=client_id, status=status)
+        table = None
+        if data.table_id:
+            table = await self.table_repo.get_by_id(PydanticObjectId(data.table_id))
+            if not table:
+                raise EntityNotFoundException("Mesa", data.table_id)
 
-    async def get_command(self, command_id: int) -> Command:
-        """Retorna uma comanda pelo ID ou lança EntityNotFoundException."""
+        return await self.repo.create(client, data, table)
+
+    def list_commands(
+        self,
+        client_id: Optional[str] = None,
+        status: Optional[CommandStatus] = None,
+    ) -> FindMany[Command]:
+        parsed_client_id = PydanticObjectId(client_id) if client_id else None
+        return self.repo.list_all(client_id=parsed_client_id, status=status)
+
+    async def get_command(self, command_id: PydanticObjectId) -> Command:
         command = await self.repo.get_by_id(command_id)
         if not command:
-            raise EntityNotFoundException("Comanda", command_id)
+            raise EntityNotFoundException("Comanda", str(command_id))
         return command
 
-    async def update_command(self, command_id: int, data: CommandUpdate) -> Command:
-        """Atualiza uma comanda, registrando automaticamente closed_at ao fechar."""
+    async def update_command(self, command_id: PydanticObjectId, data: CommandUpdate) -> Command:
         command = await self.get_command(command_id)
-        if data.status and data.status.value == "FECHADA" and data.closed_at is None:
+        if data.status == CommandStatus.FECHADA and command.closed_at is None:
             data.closed_at = datetime.utcnow()
         return await self.repo.update(command, data)
 
-    async def delete_command(self, command_id: int) -> None:
-        """Remove uma comanda pelo ID."""
+    async def add_item(self, command_id: PydanticObjectId, data: ItemCommandCreate) -> Command:
+        command = await self.get_command(command_id)
+        product = await self.product_repo.get_by_id(PydanticObjectId(data.product_id))
+        if not product:
+            raise EntityNotFoundException("Produto", data.product_id)
+        item = ItemCommand(product=product, quantity=data.quantity, unit_price=data.unit_price, observation=data.observation)
+        return await self.repo.add_item(command, item)
+
+    async def remove_item(self, command_id: PydanticObjectId, item_index: int) -> Command:
+        command = await self.get_command(command_id)
+        if item_index < 0 or item_index >= len(command.items):
+            raise EntityNotFoundException("Item da Comanda", str(item_index))
+        return await self.repo.remove_item(command, item_index)
+
+    async def delete_command(self, command_id: PydanticObjectId) -> None:
         command = await self.get_command(command_id)
         await self.repo.delete(command)

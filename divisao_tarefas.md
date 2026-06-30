@@ -2,127 +2,130 @@
 
 | Dev | Responsabilidade principal | Entrega central |
 |---|---|---|
-| Dev 1 | Fundação da API e infraestrutura | Projeto base, config, banco async, Alembic, sessão, exceções, app startup |
-| Dev 2 | CRUD das entidades principais da comanda | Models, schemas, services e rotas das entidades core |
-| Dev 3 | Documentos, consultas complexas e carga de dados | Upload/download, filtros, agregações, paginação avançada, seed realista |
+| Dev 1 | Fundação da API e infraestrutura | Projeto base, config, MongoDB/Beanie, FastAPI startup, pagination, Docker |
+| Dev 2 | CRUD das entidades principais da comanda | Models, schemas, services, rotas das entidades core |
+| Dev 3 | Documentos, relatórios, consultas e seed | Upload/download no MinIO, relatórios, filtros, seed realista |
 
 
 ## Contexto do sistema
 
 Sistema de comandas que possui as seguintes entidades:
 
-- `Cliente`
-- `Mesa`
-- `Comanda` --> `N:N`
-- `ItemComanda`
-- `Produto` --> `N:N`
-- `Category` --> `ENUM`
-- `Pagamento`
+- `Client`
+- `Table`
+- `Command`
+- `ItemCommand`
+- `Product`
+- `Payment`
+- `Document`
+
+Relacionamentos principais:
+
+- `Client` 1:N `Command`
+- `Table` 1:N `Command`
+- `Command` 1:N `ItemCommand`
+- `Product` 1:N `ItemCommand`
+- `Product` 1:N `Document`
+- `Command` 1:N `Payment`
 
 ## Responsabilidades por dev
 
 ### Miquéias Bento — Base técnica e arquitetura
 
-Responsável por tudo que os outros dois vão reutilizar:
+Responsável pela infraestrutura, configuração e pelo contrato técnico do projeto:
 
-- Estrutura do projeto: `app/models`, `app/api/routes`, `app/core`, `app/db`, `app/schemas`, `app/services`, `app/repositories`, `alembic/`, `scripts/`.
-- Configuração com `.env`, alternando entre SQLite e PostgreSQL por URL.
-- Engine e sessão assíncronos com SQLModel/SQLAlchemy async.
-- Alembic async, configuração de metadata e fluxo de migrações.
-- Tratamento global de exceções, handlers e padrão de resposta de erro.
-- Registro do FastAPI, OpenAPI, tags e dependências compartilhadas.
-- Paginação base com `fastapi-pagination`.
+- Estrutura do projeto: `app/core`, `app/models`, `app/api/routes`, `app/services`, `app/repositories`, `app/schemas`.
+- Configuração de ambiente com `.env` e Docker Compose.
+- Inicialização do MongoDB com Beanie e Motor.
+- Registro do FastAPI, OpenAPI, tags, middleware e handlers globais de erro.
+- Integração de `fastapi-pagination` em todas as listagens.
+- Deploy Docker com `Dockerfile` e `docker/docker-compose.yaml`.
+- Definição de convenções de rotas, validação e erros.
 
 Entregáveis:
 
-1. `pyproject.toml`, `.python-version`, `uv.lock`, `.env.example` ou `.env`.
-2. `database.py`, `settings.py`, `deps.py`.
-3. `alembic.ini`, `migrations/env.py`, primeira migration.
-4. Middleware e exception handlers.
-5. Guia de convenções para os demais.
-
-Definir o padrão oficial de consulta paginada, porque a lib `fastapi-pagination` trabalha com tipos como `Page[...]` e integração com SQLAlchemy via `fastapi_pagination.ext.sqlalchemy.paginate`, o que precisa ficar uniforme no projeto inteiro. [github](https://github.com/uriyyo/fastapi-pagination/blob/main/README.md)
+1. `pyproject.toml`, `.python-version`, `uv.lock`.
+2. `app/core/config.py`, `app/core/database.py`.
+3. `docker/Dockerfile`, `docker/docker-compose.yaml`.
+4. `app/main.py`, app startup e `@app.on_event("startup")`.
+5. Arquivo `.env` compatível com Docker Compose (`mongo`, `minio`) e com alternância por comentários.
 
 ### Francisco Mateus — Entidades core e CRUD principal
 
-Implementa o coração do sistema de comandas:
+Responsável pelo domínio central do sistema de comandas:
 
-- `Customer`
-- `Table`
-- `Product`
-- `Category`
-- `Command`
-- `ItemCommand`
-- `Payment`
+- Modelagem e CRUD de `Client`, `Table`, `Product`, `Command`, `ItemCommand`, `Payment`.
+- Schemas de entrada e saída (`Pydantic` / `Beanie`).
+- Serviços e repositórios para regras de negócio das entidades core.
+- Rotas REST com paginação, filtros e ordenação.
+- Busca parcial e filtros por relacionamento.
+- Consulta de comando com itens, cliente e mesa carregados.
 
-Recorte:
+Entregáveis:
 
-- `Customer`: CRUD completo, busca por nome parcial.
-- `Table`: CRUD completo, filtros por status.
-- `Product`: CRUD completo, filtros por nome, preço, categoria.
-- `Category`: CRUD completo.
-- `Command`: CRUD completo, abrir/fechar comanda, associar cliente/mesa.
-- `ItemCommand`: CRUD completo dentro da comanda.
-- `Payment`: CRUD completo, adicionar pagamento à comanda.
+- Modelos `Beanie` para as entidades core.
+- Schemas Pydantic para requests/responses.
+- Serviços que encapsulam regras de criação, atualização e exclusão.
+- Rotas CRUD com `page`/`size` e `order_by` quando aplicável.
+- Validação de dados e tratamento de exceções específicas.
 
-Deve entregar:
+### Devora Viana — Documentos, relatórios e seed
 
-- Models SQLModel.
-- Schemas de entrada/saída.
-- Services/repositories async.
-- Rotas CRUD com paginação e filtros.
-- Eager loading nas consultas relacionais.
+Responsável pela parte de documentos e relatórios analíticos:
 
-### Devora Viana — Documentos, consultas analíticas e seed
+- Modelagem de `Document` com metadados no MongoDB.
+- Integração com MinIO para armazenamento físico de arquivos.
+- Upload, download, substituição e exclusão de arquivos.
+- Endpoints obrigatórios de documentos e download.
+- Consultas analíticas, agregações, relatórios e filtros por data.
+- Script `seed.py` para popular o banco com dados reais.
 
-- Entidade `Document` com metadados.
-- Upload físico em pasta local e persistência só dos metadados no banco.
-- Endpoints de documento.
-- Consultas complexas, agregações, contagens, ordenações e filtros por data.
-- Script de carga com Faker pt_BR.
-- Compatibilidade da carga com banco definido no `.env`.
+Entregáveis:
 
-Vai associar documentos à entidade `Product`, porque faz bastante sentido armazenar foto do produto, ficha técnica ou cardápio em PDF. O FastAPI trabalha bem com `UploadFile`, inclusive com acesso a `filename` e `content_type`, e o arquivo pode ser salvo em diretório local enquanto o banco guarda apenas os metadados exigidos pelo trabalho. [dev](https://dev.to/awslearnerdaily/day-6-file-uploads-form-handling-in-fastapi-3kpl)
+- `app/models/document.py` e `app/repositories/document_repository.py`.
+- Rotas de documento: upload, listagem, metadados, download, update, delete.
+- Integração com `app/services/storage_service.py`.
+- Script de carga `seed.py` com Faker pt_BR e 100+ registros por entidade.
+- Endpoints de relatórios/analytics no prefixo `/analytics`.
 
 ## Separação técnica interna
 
-Para evitar conflito entre os 3, defina desde o início este contrato:
+Para evitar conflito entre os 3, mantenha este contrato de ownership:
 
-- **Dev 1** cria a base e congela convenções.
-- **Dev 2** só trabalha nas entidades core e seus CRUDs.
-- **Dev 3** só trabalha em `documents`, `reports`, `search`, `seed`.
+- **Dev 1**: infraestrutura, configuração, inicialização do app e padrões.
+- **Dev 2**: entidades core, CRUDs e regras de negócio principais.
+- **Dev 3**: documentos, relatórios, pesquisa avançada e seed.
 
 Sugestão de ownership por pasta:
 
-- `app/core`, `app/db`, `migrations` → Dev 1
-- `app/models/core_*`, `app/api/routes/core_*`, `app/services/core_*` → Dev 2
-- `app/models/document.py`, `app/api/routes/documents.py`, `app/api/routes/reports.py`, `scripts/seed.py` → Dev 3
+- `app/core`, `app/main.py`, `docker/` → Dev 1
+- `app/models/client.py`, `app/models/table.py`, `app/models/product.py`, `app/models/command.py`, `app/models/payment.py`, `app/api/routes/*` core → Dev 2
+- `app/models/document.py`, `app/api/routes/document_router.py`, `app/api/routes/reports_router.py`, `app/services/storage_service.py`, `scripts/seed.py`, `seed.py` → Dev 3
 
 ## Backlog geral
 
 ### Dev 1
 - Configurar `uv`, `pyproject.toml`, `.python-version`, `uv.lock`.
-- Configurar `.env` com SQLite ativo e PostgreSQL comentado.
-- Criar `settings`.
-- Implementar `create_async_engine`.
-- Implementar `AsyncSession`.
-- Configurar Alembic async.
-- Criar handlers de erro.
-- Integrar `fastapi-pagination`.
-- Subir app com Swagger funcionando.
+- Criar `.env` com configuração de MongoDB e MinIO para Docker Compose.
+- Implementar `app/core/config.py` e `app/core/database.py`.
+- Criar `docker/docker-compose.yaml` com serviços `api`, `mongo`, `minio`, `mongo-express`.
+- Registrar FastAPI e ativar `fastapi-pagination`.
+- Implementar handlers globais de erro e validação.
+- Garantir que o app inicie com `uv run uvicorn app.main:app --reload`.
 
 ### Dev 2
-- Modelar `Customer`, `Table`, `Command`, `OrderItem`, `Product`, `Category`.
-- Configurar relacionamentos.
-- Implementar CRUD completo.
-- Implementar paginação em todas as listagens.
-- Implementar filtros simples e busca textual.
-- Garantir eager loading nas consultas com relacionamentos.
+- Modelar entidades core e relacionamentos com `Beanie`.
+- Criar schemas Pydantic e serviços para CRUD.
+- Implementar rotas REST completas para `Client`, `Table`, `Product`, `Command`, `Payment`.
+- Adicionar filtros de busca parcial, ordenação e paginação.
+- Garantir dados consistentes entre `Command`, `ItemCommand`, `Client` e `Table`.
+- Validar respostas e erros para operações CRUD.
 
 ### Dev 3
-- Modelar `Document`.
-- Implementar upload, replace, delete e download físico.
-- Associar documentos a `Product` ou `Command`.
-- Criar consultas complexas e estatísticas.
-- Criar script `seed.py` com 100+ registros por entidade usando Faker pt_BR.
-- Validar funcionamento em SQLite e PostgreSQL.
+- Modelar `Document` e metadados obrigatórios.
+- Implementar upload/download via MinIO e armazenamento de metadados em Mongo.
+- Criar endpoints de documentos por produto e de download (`/documents/{id}/download`).
+- Criar consultas analíticas e relatórios no prefixo `/analytics`.
+- Desenvolver `seed.py` com Faker pt_BR e dados reais para todas as coleções.
+- Garantir que a seed use as variáveis do `.env` e funcione dentro do Docker.
+

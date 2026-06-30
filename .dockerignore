@@ -1,0 +1,14 @@
+.venv
+.git
+__pycache__
+*.pyc
+.pytest_cache
+.vscode
+.idea
+*.db
+docker
+anotacoes
+migrations
+tests
+README.md
+divisao_tarefas.md

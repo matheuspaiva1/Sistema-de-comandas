@@ -1,25 +1,36 @@
-from sqlmodel import SQLModel
+from typing import Optional
 
+from beanie.odm.fields import Link
+from pydantic import BaseModel, field_validator
+
+from app.schemas import PyObjectId
 from app.schemas.product import ProductRead
 
 
-class ItemCommandCreate(SQLModel):
-    command_id: int
-    product_id: int
+class ItemCommandCreate(BaseModel):
+    product_id: PyObjectId
     quantity: int
     unit_price: float
+    observation: Optional[str] = None
 
 
-class ItemCommandUpdate(SQLModel):
-    product_id: int | None = None
-    quantity: int | None = None
-    unit_price: float | None = None
+class ItemCommandUpdate(BaseModel):
+    quantity: Optional[int] = None
+    unit_price: Optional[float] = None
+    observation: Optional[str] = None
 
 
-class ItemCommandRead(SQLModel):
-    id: int
-    command_id: int
-    product_id: int
+class ItemCommandRead(BaseModel):
     quantity: int
     unit_price: float
-    product: ProductRead | None = None
+    observation: Optional[str] = None
+    product: Optional[ProductRead] = None
+
+    @field_validator("product", mode="before")
+    @classmethod
+    def ignore_unresolved_link(cls, value):
+        if isinstance(value, Link):
+            return None
+        return value
+
+    model_config = {"from_attributes": True}

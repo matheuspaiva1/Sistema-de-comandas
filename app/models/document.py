@@ -1,15 +1,18 @@
 from datetime import datetime
+from typing import Optional
 from uuid import UUID, uuid4
 
-from sqlmodel import Field, SQLModel, Relationship
+from beanie import Document, Link
+from pydantic import Field
 
-class Document(SQLModel, table=True):
-    """Representa os metadados de um arquivo físico associado a um produto."""
+from app.models.product import Product
 
-    __tablename__ = "documents"
 
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    product_id: int = Field(foreign_key="products.id", index=True)
+class FileDocument(Document):
+    """Metadados de um arquivo físico (imagem ou PDF) associado a um produto."""
+
+    id: UUID = Field(default_factory=uuid4)
+    product: Link[Product]
 
     original_filename: str
     content_type: str
@@ -17,4 +20,14 @@ class Document(SQLModel, table=True):
     size_bytes: int
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    product: "Product" = Relationship(back_populates="documents")
+    @property
+    def product_id(self) -> str:
+        """Retorna o ID do produto como string para serialização no schema DocumentRead."""
+        if isinstance(self.product, Product):
+            return str(self.product.id)
+        # Quando o link não foi resolvido (fetch_links=False), o Beanie
+        # armazena internamente uma referência DBRef/Link que contém o ref.
+        return str(self.product.ref.id)  # type: ignore[union-attr]
+
+    class Settings:
+        name = "documents"

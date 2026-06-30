@@ -1,27 +1,32 @@
-from sqlmodel import SQLModel
+from typing import Optional
+
+from pydantic import BaseModel
 
 from app.models.table import TableStatus
+from app.schemas import PyObjectId
 
 
-class TableCreate(SQLModel):
+class TableCreate(BaseModel):
     number: int
-    name: str | None = None
-    seats: int | None = None
-    location: str | None = None
+    name: Optional[str] = None
+    seats: Optional[int] = None
+    location: Optional[str] = None
 
 
-class TableUpdate(SQLModel):
-    number: int | None = None
-    name: str | None = None
-    seats: int | None = None
-    status: TableStatus | None = None
-    location: str | None = None
+class TableUpdate(BaseModel):
+    number: Optional[int] = None
+    name: Optional[str] = None
+    seats: Optional[int] = None
+    location: Optional[str] = None
+    status: Optional[TableStatus] = None
 
 
-class TableRead(SQLModel):
-    id: int
+class TableRead(BaseModel):
+    id: PyObjectId
     number: int
-    name: str | None = None
-    seats: int | None = None
-    location: str | None = None
+    name: Optional[str] = None
+    seats: Optional[int] = None
+    location: Optional[str] = None
     status: TableStatus
+
+    model_config = {"from_attributes": True}

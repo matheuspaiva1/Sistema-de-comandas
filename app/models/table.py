@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional
 
-from sqlmodel import Field, Relationship, SQLModel, AutoString
+from beanie import Document
 
 
 class TableStatus(str, Enum):
@@ -9,16 +9,15 @@ class TableStatus(str, Enum):
     OCUPADA = "OCUPADA"
 
 
-class Table(SQLModel, table=True):
+class Table(Document):
     """Representa uma mesa física do estabelecimento."""
 
-    __tablename__ = "tables"
+    number: int
+    name: Optional[str] = None
+    seats: Optional[int] = None
+    location: Optional[str] = None
+    status: TableStatus = TableStatus.LIVRE
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    number: int = Field(index=True)
-    name: str | None = None
-    seats: int | None = None
-    location: str | None = None
-    status: TableStatus = Field(default=TableStatus.LIVRE, index=True, sa_type=AutoString)
-
-    commands: list["Command"] = Relationship(back_populates="table")
+    class Settings:
+        name = "tables"
+        indexes = ["number", "status"]

@@ -1,72 +1,73 @@
-from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from beanie import PydanticObjectId
+from beanie.odm.queries.find import FindMany
 
-from app.models.document import Document
-from app.core.config import settings
+from app.models.document import FileDocument
+from app.models.product import Product
+from app.services.storage_service import StorageService
 
 
 class DocumentRepository:
-    """Repositório de acesso a dados e armazenamento físico de documentos."""
+    """Repositório de metadados de documentos. Arquivos físicos são gerenciados pelo StorageService (MinIO)."""
 
-    def __init__(self, session: AsyncSession) -> None:
-        self.session = session
-        self.upload_dir = Path(settings.upload_dir)
-        self.upload_dir.mkdir(parents=True, exist_ok=True)
+    def __init__(self) -> None:
+        self._storage: StorageService | None = None
 
-    def _file_path(self, document_id: UUID, extension: str) -> Path:
-        """Retorna o caminho físico do arquivo com base no ID e extensão."""
-        return self.upload_dir / f"{document_id}{extension}"
+    @property
+    def storage(self) -> StorageService:
+        if self._storage is None:
+            self._storage = StorageService()
+        return self._storage
 
     async def create(
         self,
-        product_id: int,
+        product: Product,
         original_filename: str,
         content_type: str,
         extension: str,
         size_bytes: int,
         file_content: bytes,
-    ) -> Document:
-        """Persiste os metadados do documento e grava o arquivo físico no disco."""
-        document = Document(
-            product_id=product_id,
+    ) -> FileDocument:
+        document = FileDocument(
+            product=product,
             original_filename=original_filename,
             content_type=content_type,
             extension=extension,
             size_bytes=size_bytes,
         )
-        self.session.add(document)
-        await self.session.commit()
-        await self.session.refresh(document)
-
-        self._file_path(document.id, extension).write_bytes(file_content)
+        await document.insert()
+        self.storage.upload(
+            document_id=document.id,
+            extension=extension,
+            data=file_content,
+            content_type=content_type,
+        )
         return document
 
-    async def get_by_id(self, document_id: UUID) -> Optional[Document]:
-        """Retorna um documento pelo seu UUID, ou None se não encontrado."""
-        return await self.session.get(Document, document_id)
+    async def get_by_id(self, document_id: UUID) -> Optional[FileDocument]:
+        return await FileDocument.find_one({"_id": document_id}, fetch_links=True)
 
-    def list_by_product_statement(self, product_id: int):
-        """Retorna statement de listagem de documentos de um produto, ordenados por data."""
-        return (
-            select(Document)
-            .where(Document.product_id == product_id)
-            .order_by(Document.created_at.desc())
-        )
+    def list_by_product(self, product_id: PydanticObjectId) -> FindMany[FileDocument]:
+        return FileDocument.find(
+            FileDocument.product.id == product_id, 
+            fetch_links=True,
+        ).sort("-created_at")
 
-    async def get_file_path(self, document_id: UUID) -> Optional[Path]:
-        """Retorna o caminho físico do arquivo se existir, ou None."""
+    async def download_file(self, document_id: UUID) -> Optional[tuple[bytes, str, str]]:
+        """Baixa o arquivo do MinIO e retorna (bytes, content_type, original_filename).
+
+        Returns:
+            Tupla com o conteúdo, MIME type e nome original, ou None se o documento não existir.
+        """
         document = await self.get_by_id(document_id)
         if not document:
             return None
-
-        file_path = self._file_path(document.id, document.extension)
-        if file_path.exists():
-            return file_path
-        return None
+        if not self.storage.exists(document.id, document.extension):
+            return None
+        data = self.storage.download(document.id, document.extension)
+        return data, document.content_type, document.original_filename
 
     async def update_file(
         self,
@@ -76,49 +77,40 @@ class DocumentRepository:
         extension: str,
         size_bytes: int,
         file_content: bytes,
-    ) -> Optional[Document]:
-        """Substitui os metadados e o arquivo físico de um documento existente."""
+    ) -> Optional[FileDocument]:
         document = await self.get_by_id(document_id)
         if not document:
             return None
 
-        old_path = self._file_path(document.id, document.extension)
+        old_extension = document.extension
+        await document.set({
+            "original_filename": original_filename,
+            "content_type": content_type,
+            "extension": extension,
+            "size_bytes": size_bytes,
+        })
 
-        document.original_filename = original_filename
-        document.content_type = content_type
-        document.extension = extension
-        document.size_bytes = size_bytes
-        self.session.add(document)
-        await self.session.commit()
-        await self.session.refresh(document)
+        if old_extension != extension:
+            self.storage.delete(document.id, old_extension)
 
-        new_path = self._file_path(document.id, extension)
-        if old_path != new_path and old_path.exists():
-            old_path.unlink()
-
-        new_path.write_bytes(file_content)
+        self.storage.upload(
+            document_id=document.id,
+            extension=extension,
+            data=file_content,
+            content_type=content_type,
+        )
         return document
 
     async def delete(self, document_id: UUID) -> bool:
-        """Remove o documento do banco e apaga o arquivo físico. Retorna True se bem-sucedido."""
         document = await self.get_by_id(document_id)
         if not document:
             return False
-
-        file_path = self._file_path(document.id, document.extension)
-        if file_path.exists():
-            file_path.unlink()
-
-        await self.session.delete(document)
-        await self.session.commit()
+        self.storage.delete(document.id, document.extension)
+        await document.delete()
         return True
 
-    async def delete_by_product(self, product_id: int) -> int:
-        """Remove todos os documentos de um produto. Retorna a quantidade removida."""
-        result = await self.session.execute(
-            select(Document).where(Document.product_id == product_id)
-        )
-        documents = result.scalars().all()
+    async def delete_by_product(self, product_id: PydanticObjectId) -> int:
+        documents = await self.list_by_product(product_id).to_list()
         count = 0
         for doc in documents:
             if await self.delete(doc.id):
