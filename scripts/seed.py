@@ -1,33 +1,24 @@
 """
-Compatibilidade de seed MongoDB para o projeto.
-
-Este arquivo delega para o seed principal do projeto, que já usa
-Motor + Beanie e funciona com a configuração de MongoDB.
+Script compatível com o comando antigo de seed.
+Executa o orquestrador MongoDB definido na raiz do projeto.
 """
 
 import argparse
 import asyncio
+import importlib.util
 from pathlib import Path
 import sys
 
-app_path = Path(__file__).parent.parent
-sys.path.insert(0, str(app_path))
 
-from seed import main as project_seed_main
+project_root = Path(__file__).resolve().parent.parent
+seed_path = project_root / "seed.py"
+sys.path.insert(0, str(project_root))
 
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Popula o banco MongoDB do projeto com dados de exemplo."
-    )
-    parser.add_argument(
-        "--no-clean",
-        action="store_true",
-        help="Mantém os dados existentes e apenas adiciona novos registros.",
-    )
-    return parser.parse_args()
+spec = importlib.util.spec_from_file_location("mongo_seed", seed_path)
+mongo_seed = importlib.util.module_from_spec(spec)
+assert spec.loader is not None
+spec.loader.exec_module(mongo_seed)
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    asyncio.run(project_seed_main(clean=not args.no_clean))
+    asyncio.run(mongo_seed.main())

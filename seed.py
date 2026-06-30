@@ -1,325 +1,376 @@
+"""
+Script orquestrador de carregamento de dados fictícios.
+Popula o MongoDB com mais de 100 registros por coleção, garantindo restrições e relacionamentos.
+"""
+
 import argparse
 import asyncio
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 import random
+
+import beanie
 from faker import Faker
 import motor.motor_asyncio
-import beanie
 
 from app.core.config import settings
-from app.models import Client, Table, Product, Payment, Command, Document
-from app.models.table import TableStatus
-from app.models.product import CategoryEnum
+from app.models import Client, Command, Document, Payment, Product, Table
 from app.models.command import CommandStatus
-from app.models.payment import PaymentMethod, PaymentStatus
 from app.models.item_command import ItemCommand
-from app.services.storage_service import StorageService
+from app.models.payment import PaymentMethod, PaymentStatus
+from app.models.product import CategoryEnum
+from app.models.table import TableStatus
 
 
-async def clean_database():
-    """Limpa todas as coleções do banco de dados antes de iniciar o seed."""
-    print("Limpando coleções existentes...")
+fake = Faker("pt_BR")
+
+
+def utc_now() -> datetime:
+    """Retorna a data atual em UTC sem timezone para manter compatibilidade com os modelos existentes."""
+    return datetime.now(UTC).replace(tzinfo=None)
+
+
+async def init_mongo() -> None:
+    """Inicializa a conexão com MongoDB e registra os documentos Beanie."""
+    print(f"Conectando ao MongoDB em {settings.mongo_url}...")
+    client = motor.motor_asyncio.AsyncIOMotorClient(settings.mongo_url)
+    database = client[settings.database_name]
+    await beanie.init_beanie(
+        database=database,
+        document_models=[Client, Table, Product, Payment, Command, Document],
+    )
+
+
+async def database_has_data() -> bool:
+    """Verifica se o banco já possui dados de domínio."""
+    return await Product.count() > 0
+
+
+async def clean_database() -> None:
+    """Limpa todas as coleções de domínio antes de recriar as seeds."""
+    print("Limpando dados existentes...")
     await Payment.find_all().delete()
     await Command.find_all().delete()
     await Document.find_all().delete()
     await Product.find_all().delete()
     await Table.find_all().delete()
     await Client.find_all().delete()
-    print("Limpeza concluída.")
+    print("Banco limpo.")
 
 
-async def main(clean: bool = True):
-    print(f"Conectando ao MongoDB em {settings.mongo_url}...")
-    client_db = motor.motor_asyncio.AsyncIOMotorClient(settings.mongo_url)
-    db = client_db[settings.database_name]
-    await beanie.init_beanie(
-        database=db,
-        document_models=[Client, Table, Product, Payment, Command, Document],
-    )
+async def seed_clients(count: int = 120) -> list[Client]:
+    """Cria clientes fictícios."""
+    clients = []
+
+    for index in range(count):
+        client = Client(
+            name=fake.name(),
+            phone=fake.phone_number(),
+            email=f"{fake.user_name()}_{index}@{fake.free_email_domain()}",
+            tax_id=fake.cpf() if random.random() > 0.3 else None,
+            created_at=utc_now() - timedelta(days=random.randint(10, 60)),
+        )
+        await client.insert()
+        clients.append(client)
+
+        if (index + 1) % 20 == 0:
+            print(f"  {index + 1}/{count} clientes criados")
+
+    return clients
+
+
+async def seed_tables(count: int = 100) -> list[Table]:
+    """Cria mesas no sistema."""
+    tables = []
+    locations = ["Salão Principal", "Varanda", "Mezanino", "Jardim", "Balcão", "Área VIP"]
+
+    for number in range(1, count + 1):
+        table = Table(
+            number=number,
+            name=f"Mesa {number}",
+            seats=random.choice([2, 4, 6, 8, 10]),
+            location=random.choice(locations),
+            status=random.choice(list(TableStatus)),
+        )
+        await table.insert()
+        tables.append(table)
+
+        if number % 20 == 0:
+            print(f"  {number}/{count} mesas criadas")
+
+    return tables
+
+
+def product_catalog() -> dict[CategoryEnum, list[tuple[str, str, float]]]:
+    """Retorna o catálogo base usado para gerar produtos realistas por categoria."""
+    return {
+        CategoryEnum.BEBIDA: [
+            ("Refrigerante Lata", "Refrigerante de 350ml.", 6.0),
+            ("Suco Natural", "Suco natural preparado na hora.", 8.5),
+            ("Água Mineral", "Água mineral em garrafa de 500ml.", 4.5),
+            ("Chá Gelado", "Chá gelado com limão e hortelã.", 7.0),
+            ("Café Espresso", "Café espresso com grãos selecionados.", 5.5),
+            ("Milkshake", "Milkshake cremoso batido com sorvete.", 18.0),
+            ("Vinho Taça", "Taça de vinho seco.", 19.5),
+            ("Cerveja Long Neck", "Cerveja lager 330ml.", 11.9),
+        ],
+        CategoryEnum.PRATO_PRINCIPAL: [
+            ("Filé Mignon", "Filé mignon grelhado com acompanhamento.", 68.0),
+            ("Salmão Grelhado", "Salmão grelhado com legumes.", 74.0),
+            ("Risoto de Cogumelos", "Risoto cremoso com cogumelos frescos.", 52.0),
+            ("Lasanha Bolonhesa", "Lasanha com molho de carne e queijo.", 45.0),
+            ("Picanha Grelhada", "Picanha grelhada com farofa e fritas.", 85.0),
+            ("Strogonoff de Frango", "Strogonoff servido com arroz e batata palha.", 38.0),
+        ],
+        CategoryEnum.ENTRADA: [
+            ("Bruschetta", "Pão italiano com tomate e manjericão.", 18.0),
+            ("Bolinho de Bacalhau", "Bolinhos fritos de bacalhau.", 28.0),
+            ("Batata Rústica", "Batatas rústicas com molho da casa.", 22.0),
+            ("Pastel de Queijo", "Pastéis recheados com queijo.", 16.0),
+            ("Dadinho de Tapioca", "Dadinhos de tapioca com melaço.", 24.0),
+        ],
+        CategoryEnum.SOBREMESA: [
+            ("Pudim", "Pudim de leite condensado com caramelo.", 12.0),
+            ("Petit Gateau", "Bolo quente de chocolate com sorvete.", 22.0),
+            ("Brownie", "Brownie de chocolate com calda.", 16.5),
+            ("Mousse", "Mousse cremosa de fruta.", 11.0),
+            ("Torta", "Torta doce com massa crocante.", 14.0),
+        ],
+        CategoryEnum.LANCHE: [
+            ("X-Burger", "Hambúrguer com queijo e molho da casa.", 24.0),
+            ("Sanduíche de Frango", "Sanduíche com frango grelhado.", 22.0),
+            ("Pastel de Carne", "Pastel recheado com carne temperada.", 14.0),
+            ("Coxinha", "Coxinha de frango com massa crocante.", 9.0),
+            ("Wrap Vegetariano", "Wrap com vegetais e homus.", 20.0),
+        ],
+        CategoryEnum.OUTRO: [
+            ("Couvert", "Cesta de pães artesanais.", 12.0),
+            ("Molho Extra", "Porção extra de molho da casa.", 4.0),
+            ("Adicional", "Adicional escolhido pelo cliente.", 6.0),
+        ],
+    }
+
+
+async def seed_products(count: int = 120) -> list[Product]:
+    """Cria produtos fictícios agrupados por categoria."""
+    products = []
+    catalog = product_catalog()
+    categories = list(CategoryEnum)
+
+    for index in range(count):
+        category = categories[index % len(categories)]
+        base_name, description, base_price = random.choice(catalog[category])
+        variation = fake.word().capitalize()
+        price = round(max(2.0, base_price + random.uniform(-2.0, 8.0)), 2)
+        product = Product(
+            name=f"{base_name} {variation}",
+            description=f"{description} {fake.sentence(nb_words=8)}",
+            category=category,
+            price=price,
+            active=random.choice([True, True, True, False]),
+        )
+        await product.insert()
+        products.append(product)
+
+        if (index + 1) % 20 == 0:
+            print(f"  {index + 1}/{count} produtos criados")
+
+    return products
+
+
+async def seed_commands(clients: list[Client], tables: list[Table], products: list[Product], count: int = 150) -> list[Command]:
+    """Cria comandas associadas a clientes, mesas e itens embutidos."""
+    commands = []
+
+    for index in range(count):
+        status = random.choice(list(CommandStatus))
+        opened_at = fake.date_time_between(start_date="-60d", end_date="now")
+        closed_at = None
+
+        if status in [CommandStatus.FECHADA, CommandStatus.CANCELADA]:
+            closed_at = opened_at + timedelta(minutes=random.randint(45, 240))
+
+        items = []
+        for _ in range(random.randint(1, 6)):
+            product = random.choice(products)
+            quantity = random.randint(1, 4)
+            items.append(
+                ItemCommand(
+                    product=product,
+                    quantity=quantity,
+                    unit_price=product.price,
+                    observation=fake.sentence(nb_words=6) if random.random() > 0.75 else None,
+                )
+            )
+
+        command = Command(
+            client=random.choice(clients),
+            table=random.choice(tables),
+            items=items,
+            status=status,
+            total_amount=round(sum(item.quantity * item.unit_price for item in items), 2),
+            opened_at=opened_at,
+            closed_at=closed_at,
+        )
+        await command.insert()
+        commands.append(command)
+
+        if (index + 1) % 20 == 0:
+            print(f"  {index + 1}/{count} comandas criadas")
+
+    return commands
+
+
+async def seed_payments(commands: list[Command], minimum_count: int = 120) -> list[Payment]:
+    """Cria pagamentos para comandas fechadas, canceladas e alguns casos pendentes."""
+    payments = []
+
+    for command in commands:
+        if command.status == CommandStatus.FECHADA:
+            payment = Payment(
+                command=command,
+                amount=command.total_amount,
+                method=random.choice(list(PaymentMethod)),
+                status=PaymentStatus.PAGO,
+                paid_at=command.closed_at,
+            )
+            await payment.insert()
+            payments.append(payment)
+        elif command.status == CommandStatus.CANCELADA and random.random() > 0.8:
+            payment = Payment(
+                command=command,
+                amount=command.total_amount,
+                method=random.choice(list(PaymentMethod)),
+                status=PaymentStatus.ESTORNADO,
+                paid_at=command.opened_at + timedelta(minutes=10),
+            )
+            await payment.insert()
+            payments.append(payment)
+
+    while len(payments) < minimum_count:
+        command = random.choice(commands)
+        paid = random.random() > 0.4
+        payment = Payment(
+            command=command,
+            amount=round(command.total_amount * random.choice([0.5, 1.0]), 2),
+            method=random.choice(list(PaymentMethod)),
+            status=PaymentStatus.PAGO if paid else PaymentStatus.PENDENTE,
+            paid_at=command.opened_at + timedelta(minutes=random.randint(10, 180)) if paid else None,
+        )
+        await payment.insert()
+        payments.append(payment)
+
+    print(f"  {len(payments)} pagamentos processados")
+    return payments
+
+
+async def seed_documents(products: list[Product], count: int = 120) -> list[Document]:
+    """Cria metadados de documentos associados aos produtos."""
+    documents = []
+    extensions = [".pdf", ".jpg", ".jpeg", ".png"]
+    content_types = {
+        ".pdf": "application/pdf",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+    }
+
+    for index in range(count):
+        extension = random.choice(extensions)
+        product = products[index % len(products)]
+        document = Document(
+            product=product,
+            original_filename=f"{fake.word()}-{product.name.lower().replace(' ', '-')}{extension}",
+            content_type=content_types[extension],
+            extension=extension,
+            size_bytes=random.randint(15_000, 500_000),
+            created_at=fake.date_time_between(start_date="-30d", end_date="now"),
+        )
+        await document.insert()
+        documents.append(document)
+
+        if (index + 1) % 20 == 0:
+            print(f"  {index + 1}/{count} documentos criados")
+
+    return documents
+
+
+async def collection_counts() -> dict[str, int]:
+    """Retorna o total atual de documentos por coleção."""
+    return {
+        "clientes": await Client.count(),
+        "mesas": await Table.count(),
+        "produtos": await Product.count(),
+        "comandas": await Command.count(),
+        "pagamentos": await Payment.count(),
+        "documentos": await Document.count(),
+    }
+
+
+def should_clean(args: argparse.Namespace, has_data: bool) -> bool:
+    """Define se a seed deve limpar o banco antes de popular."""
+    if args.no_clean:
+        return False
+
+    if args.yes or not has_data:
+        return True
+
+    print("\nO banco já contém dados!")
+    response = input("Deseja limpar todas as coleções e recriar as seeds? (s/n): ").strip().lower()
+    return response == "s"
+
+
+async def main() -> None:
+    """Executa a carga completa de dados fictícios."""
+    print("Iniciando verificação do banco de dados...")
+    await init_mongo()
+
+    has_data = await database_has_data()
+    args = parse_args()
+    clean = should_clean(args, has_data)
+
+    if has_data and not clean and not args.no_clean:
+        print("Operação cancelada.")
+        return
 
     if clean:
         await clean_database()
 
-    fake = Faker("pt_BR")
-    random.seed(42)
-    Faker.seed(42)
-    storage = StorageService()
+    random.seed(args.seed)
+    Faker.seed(args.seed)
 
-    print("Gerando 120 Clientes...")
-    clients = []
-    for _ in range(120):
-        try:
-            tax_id = fake.cpf()
-        except AttributeError:
-            tax_id = f"{random.randint(100, 999)}.{random.randint(100, 999)}.{random.randint(100, 999)}-{random.randint(10, 99)}"
+    print("\n> Criando Clientes (mínimo 100)")
+    clients = await seed_clients(count=120)
 
-        name = fake.name()
-        email_prefix = name.lower().replace(" ", "")
-        email = f"{email_prefix}_{random.randint(1000, 9999)}@{fake.free_email_domain()}"
+    print("\n> Criando Mesas (mínimo 100)")
+    tables = await seed_tables(count=100)
 
-        client_doc = Client(
-            name=name,
-            phone=fake.phone_number(),
-            email=email,
-            tax_id=tax_id,
-            created_at=datetime.utcnow() - timedelta(days=random.randint(10, 60)),
-        )
-        await client_doc.insert()
-        clients.append(client_doc)
+    print("\n> Criando Produtos (mínimo 100)")
+    products = await seed_products(count=120)
 
-    print("Gerando 100 Mesas...")
-    tables = []
-    locations = ["Salão Principal", "Varanda", "Terraço", "Mezanino", "Área VIP"]
-    for i in range(1, 101):
-        status = TableStatus.LIVRE if random.random() > 0.3 else TableStatus.OCUPADA
-        table_doc = Table(
-            number=i,
-            name=f"Mesa {i}",
-            seats=random.choice([2, 4, 6, 8]),
-            location=random.choice(locations),
-            status=status,
-        )
-        await table_doc.insert()
-        tables.append(table_doc)
+    print("\n> Criando Comandas (mínimo 100)")
+    commands = await seed_commands(clients, tables, products, count=150)
 
-    print("Gerando 105 Produtos...")
-    products_pool = {
-        CategoryEnum.BEBIDA: [
-            ("Suco Natural de Laranja", "Suco de laranja espremido na hora, 300ml.", 8.50),
-            ("Suco de Limão Rústico", "Suco refrescante de limão taiti, 300ml.", 7.90),
-            ("Refrigerante Lata", "Refrigerante de 350ml (Coca-Cola, Guaraná).", 6.00),
-            ("Água Mineral Sem Gás", "Água mineral natural, garrafa 500ml.", 4.50),
-            ("Água Mineral Com Gás", "Água mineral gaseificada, garrafa 500ml.", 5.00),
-            ("Cerveja Heineken Long Neck", "Cerveja premium lager 330ml.", 11.90),
-            ("Cerveja Artesanal IPA", "Cerveja local IPA forte e lupulada, 500ml.", 22.00),
-            ("Caipirinha Clássica", "Caipirinha de cachaça premium, limão e açúcar.", 18.00),
-            ("Chopp Caneca", "Chopp gelado direto da torneira, 450ml.", 10.00),
-            ("Vinho Tinto Taça", "Taça de vinho tinto seco cabernet sauvignon.", 19.50),
-        ],
-        CategoryEnum.PRATO_PRINCIPAL: [
-            ("Filé Mignon ao Molho Madeira", "Filé mignon grelhado com molho madeira, arroz e purê.", 68.00),
-            ("Salmão Grelhado com Alcaparras", "Filé de salmão grelhado, legumes ao vapor e arroz.", 74.00),
-            ("Risoto de Cogumelos Shimeji", "Risoto cremoso de arroz arbóreo com cogumelos frescos.", 52.00),
-            ("Lasanha Bolonhesa", "Lasanha clássica com massa artesanal, molho de carne e queijo.", 45.00),
-            ("Nhoque Rústico ao Sugo", "Nhoque de batata artesanal com molho de tomates frescos.", 39.00),
-            ("Picanha Grelhada na Chapa", "Tiras de picanha grelhada com farofa, vinagrete e fritas.", 85.00),
-            ("Strogonoff de Frango", "Clássico strogonoff com arroz branco e batata palha.", 38.00),
-            ("Parmegiana de Carne", "Filé bovino empanado com molho de tomate e muçarela gratinada.", 59.00),
-        ],
-        CategoryEnum.ENTRADA: [
-            ("Bruschetta de Tomate e Manjericão", "Pão italiano tostado com tomates picados, alho e azeite.", 18.00),
-            ("Bolinho de Bacalhau (6 unidades)", "Bolinhos fritos de bacalhau desfiado e batata.", 28.00),
-            ("Batata Rústica Especial", "Batatas fritas rústicas com alecrim e maionese da casa.", 22.00),
-            ("Pastel de Queijo (4 unidades)", "Pastéis fritos recheados com queijo muçarela derretido.", 16.00),
-            ("Provolone à Milanesa", "Cubos de queijo provolone empanados e fritos.", 25.00),
-            ("Dadinho de Tapioca", "Dadinhos fritos de tapioca com queijo coalho e melaço.", 24.00),
-        ],
-        CategoryEnum.SOBREMESA: [
-            ("Pudim de Leite Condensado", "Pudim cremoso clássico com calda de caramelo caseira.", 12.00),
-            ("Petit Gâteau com Sorvete", "Bolo quente de chocolate com recheio cremoso e sorvete.", 22.00),
-            ("Brownie de Chocolate com Nozes", "Brownie denso servido quente com calda de chocolate.", 16.50),
-            ("Mousse de Maracujá Cremosa", "Mousse refrescante feita com polpa natural de maracujá.", 11.00),
-            ("Torta de Limão Rústica", "Torta com base de biscoito, creme de limão e merengue tostado.", 14.00),
-        ],
-        CategoryEnum.LANCHE: [
-            ("Hambúrguer Gourmet Especial", "Pão brioche, blend bovino 150g, queijo cheddar e bacon.", 32.00),
-            ("Cheeseburger Clássico", "Pão brioche, blend bovino 120g e queijo prato derretido.", 24.00),
-            ("Misto Quente Especial", "Pão de forma tostado com presunto royale e queijo muçarela.", 14.00),
-            ("Sanduíche de Frango Grelhado", "Pão baguete, filé de frango, alface, tomate e maionese verde.", 22.00),
-            ("Wrap de Vegetais e Húmus", "Tortilha recheada com abobrinha grelhada, tomate, rúcula e húmus.", 20.00),
-        ],
-        CategoryEnum.OUTRO: [
-            ("Cafezinho Espresso", "Café espresso forte feito com grãos selecionados.", 5.50),
-            ("Chá Gelado com Limão", "Chá preto gelado batido com suco de limão e hortelã.", 7.00),
-            ("Cesta de Pães do Couvert", "Pães artesanais variados servidos com manteiga de ervas.", 12.00),
-        ]
-    }
+    print("\n> Processando Pagamentos (mínimo 100)")
+    await seed_payments(commands, minimum_count=120)
 
-    products = []
-    count_prod = 0
-    while count_prod < 105:
-        for category, items_list in products_pool.items():
-            if count_prod >= 105:
-                break
-            base_item = random.choice(items_list)
-            variation = "" if count_prod < len(items_list) * 6 else f" (Variação {count_prod})"
-            
-            prod_name = f"{base_item[0]}{variation}"
-            prod_desc = f"{base_item[1]} {fake.sentence()}"
-            prod_price = float(base_item[2] + random.randint(-2, 5))
-            if prod_price < 2.0:
-                prod_price = 2.0
-                
-            product_doc = Product(
-                name=prod_name,
-                description=prod_desc,
-                category=category,
-                price=prod_price,
-                active=random.random() > 0.05,
-            )
-            await product_doc.insert()
-            products.append(product_doc)
-            count_prod += 1
+    print("\n> Gerando Documentos (mínimo 100)")
+    await seed_documents(products, count=120)
 
-    print("Gerando 105 Documentos (metadados de fotos de produtos)...")
-    documents = []
-    extensions = [".jpg", ".png", ".pdf"]
-    content_types = {
-        ".jpg": "image/jpeg",
-        ".png": "image/png",
-        ".pdf": "application/pdf"
-    }
+    print("\nResumo final:")
+    for name, total in (await collection_counts()).items():
+        print(f"  {name}: {total}")
 
-    def generate_file_content(ext: str) -> bytes:
-        if ext == ".pdf":
-            return bytes(random.getrandbits(8) for _ in range(2048))
-        elif ext == ".png":
-            return bytes(random.getrandbits(8) for _ in range(2048))
-        elif ext == ".jpg":
-            return bytes(random.getrandbits(8) for _ in range(2048))
-        else:
-            return f"Documento fictício com extensão {ext}.".encode("utf-8")
-
-    for prod in products:
-        ext = random.choice(extensions)
-        slug_name = prod.name.lower().replace(" ", "_").replace("(", "").replace(")", "")
-        file_content = generate_file_content(ext)
-        document = Document(
-            product=prod,
-            original_filename=f"{slug_name}_foto{ext}",
-            content_type=content_types[ext],
-            extension=ext,
-            size_bytes=len(file_content),
-            created_at=datetime.utcnow() - timedelta(days=random.randint(1, 10)),
-        )
-        await document.insert()
-        # print(type(file_content))
-        try:
-            storage.upload(
-                document_id=document.id,
-                extension=document.extension,
-                data=file_content,
-                content_type=document.content_type,
-            )
-        except Exception:
-            await document.delete()
-            raise
-        documents.append(document)
-
-    print("Gerando 150 Comandas...")
-    commands = []
-
-    for _ in range(150):
-        client = random.choice(clients)
-        table = random.choice(tables) if random.random() > 0.2 else None
-        
-        status = random.choice([CommandStatus.ABERTA, CommandStatus.FECHADA, CommandStatus.CANCELADA])
-        opened_at = datetime.utcnow() - timedelta(
-            days=random.randint(0, 30),
-            hours=random.randint(0, 23),
-            minutes=random.randint(0, 59)
-        )
-        
-        closed_at = None
-        if status in [CommandStatus.FECHADA, CommandStatus.CANCELADA]:
-            closed_at = opened_at + timedelta(
-                hours=random.randint(1, 4),
-                minutes=random.randint(0, 59)
-            )
-
-        items_count = random.randint(1, 6)
-        items = []
-        for _ in range(items_count):
-            prod = random.choice(products)
-            qty = random.randint(1, 4)
-            items.append(
-                ItemCommand(
-                    product=prod,
-                    quantity=qty,
-                    unit_price=prod.price,
-                    observation=fake.sentence() if random.random() > 0.7 else None
-                )
-            )
-            
-        total_amount = sum(item.quantity * item.unit_price for item in items)
-        
-        command_doc = Command(
-            client=client,
-            table=table,
-            items=items,
-            status=status,
-            total_amount=total_amount,
-            opened_at=opened_at,
-            closed_at=closed_at,
-        )
-        await command_doc.insert()
-        commands.append(command_doc)
-
-    print("Gerando 120 Pagamentos...")
-    payments_count = 0
-
-    closed_commands = [c for c in commands if c.status == CommandStatus.FECHADA]
-    for cmd in closed_commands:
-        method = random.choice([PaymentMethod.CARTAO, PaymentMethod.PIX, PaymentMethod.DINHEIRO])
-        paid_at = cmd.closed_at or (cmd.opened_at + timedelta(hours=2))
-        
-        payment_doc = Payment(
-            command=cmd,
-            amount=cmd.total_amount,
-            method=method,
-            status=PaymentStatus.PAGO,
-            paid_at=paid_at,
-        )
-        await payment_doc.insert()
-        payments_count += 1
-
-    all_commands = commands.copy()
-    while payments_count < 120:
-        cmd = random.choice(all_commands)
-        if cmd.status == CommandStatus.CANCELADA:
-            status = PaymentStatus.ESTORNADO
-            amount = cmd.total_amount
-            paid_at = cmd.closed_at
-        elif cmd.status == CommandStatus.ABERTA:
-            status = random.choice([PaymentStatus.PENDENTE, PaymentStatus.PAGO])
-            amount = cmd.total_amount * random.choice([0.5, 1.0])
-            paid_at = cmd.opened_at + timedelta(minutes=30) if status == PaymentStatus.PAGO else None
-        else:
-            status = PaymentStatus.PAGO
-            amount = cmd.total_amount * 0.5
-            paid_at = cmd.closed_at
-
-        method = random.choice([PaymentMethod.CARTAO, PaymentMethod.PIX, PaymentMethod.DINHEIRO])
-        
-        payment_doc = Payment(
-            command=cmd,
-            amount=amount,
-            method=method,
-            status=status,
-            paid_at=paid_at,
-        )
-        await payment_doc.insert()
-        payments_count += 1
-
-    print(f"Banco de dados MongoDB populado com sucesso!")
-    print(f"Total de Clientes inseridos: {len(clients)}")
-    print(f"Total de Mesas inseridas: {len(tables)}")
-    print(f"Total de Produtos inseridos: {len(products)}")
-    print(f"Total de Documentos (metadados) inseridos: {len(documents)}")
-    print(f"Total de Comandas inseridas: {len(commands)}")
-    print(f"Total de Pagamentos inseridos: {payments_count}")
+    print("\nBanco de dados MongoDB populado com sucesso!")
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
+    """Lê os argumentos de linha de comando da seed."""
     parser = argparse.ArgumentParser(description="Popula o MongoDB com dados realistas para desenvolvimento.")
-    parser.add_argument(
-        "--no-clean",
-        action="store_true",
-        help="Mantém os dados existentes e apenas adiciona novos registros.",
-    )
+    parser.add_argument("--yes", action="store_true", help="Confirma a limpeza do banco sem perguntar.")
+    parser.add_argument("--no-clean", action="store_true", help="Mantém os dados existentes e adiciona novos registros.")
+    parser.add_argument("--seed", type=int, default=42, help="Semente usada para gerar dados reprodutíveis.")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    asyncio.run(main(clean=not args.no_clean))
+    asyncio.run(main())
