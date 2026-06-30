@@ -1,7 +1,10 @@
 import enum
 from pymongo import IndexModel, TEXT
 
-from beanie import Document
+from beanie import Document, Link
+from pydantic import Field
+
+from app.models.document import FileDocument
 
 
 class CategoryEnum(str, enum.Enum):
@@ -21,6 +24,7 @@ class Product(Document):
     category: CategoryEnum
     price: float
     active: bool = True
+    documents: list[Link[FileDocument]] = Field(default_factory=list)
 
     class Settings:
         name = "products"

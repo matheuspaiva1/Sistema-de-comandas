@@ -2,7 +2,6 @@ from typing import Optional
 from uuid import UUID
 
 from beanie import PydanticObjectId
-from beanie.odm.queries.find import FindMany
 
 from app.models.document import FileDocument
 from app.models.product import Product
@@ -31,13 +30,14 @@ class DocumentRepository:
         file_content: bytes,
     ) -> FileDocument:
         document = FileDocument(
-            product=product,
             original_filename=original_filename,
             content_type=content_type,
             extension=extension,
             size_bytes=size_bytes,
         )
         await document.insert()
+        product.documents.append(document)
+        await product.save()
         self.storage.upload(
             document_id=document.id,
             extension=extension,
@@ -49,11 +49,18 @@ class DocumentRepository:
     async def get_by_id(self, document_id: UUID) -> Optional[FileDocument]:
         return await FileDocument.find_one({"_id": document_id}, fetch_links=True)
 
-    def list_by_product(self, product_id: PydanticObjectId) -> FindMany[FileDocument]:
-        return FileDocument.find(
-            FileDocument.product.id == product_id, 
-            fetch_links=True,
-        ).sort("-created_at")
+    async def list_by_product(self, product_id: PydanticObjectId) -> list[FileDocument]:
+        product = await Product.get(product_id, fetch_links=True)
+        if not product:
+            return []
+
+        documents: list[FileDocument] = []
+        for link in product.documents:
+            if hasattr(link, "fetch"):
+                documents.append(await link.fetch())
+            else:
+                documents.append(link)
+        return sorted(documents, key=lambda item: item.created_at, reverse=True)
 
     async def download_file(self, document_id: UUID) -> Optional[tuple[bytes, str, str]]:
         """Baixa o arquivo do MinIO e retorna (bytes, content_type, original_filename).
@@ -110,7 +117,7 @@ class DocumentRepository:
         return True
 
     async def delete_by_product(self, product_id: PydanticObjectId) -> int:
-        documents = await self.list_by_product(product_id).to_list()
+        documents = await self.list_by_product(product_id)
         count = 0
         for doc in documents:
             if await self.delete(doc.id):

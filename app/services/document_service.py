@@ -1,7 +1,6 @@
 from uuid import UUID
 
 from beanie import PydanticObjectId
-from beanie.odm.queries.find import FindMany
 from fastapi import UploadFile
 
 from app.models.document import FileDocument
@@ -58,8 +57,8 @@ class DocumentService:
             raise DocumentNotFoundException(document_id)
         return document
 
-    def list_documents_by_product(self, product_id: PydanticObjectId) -> FindMany[FileDocument]:
-        return self.repo.list_by_product(product_id)
+    async def list_documents_by_product(self, product_id: PydanticObjectId) -> list[FileDocument]:
+        return await self.repo.list_by_product(product_id)
 
     async def download_document(self, document_id: UUID) -> tuple[bytes, str, str]:
         """Baixa o arquivo do MinIO e retorna (bytes, content_type, original_filename)."""
