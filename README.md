@@ -1,5 +1,14 @@
 # Sistema de Comandas API
 
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571.svg?style=for-the-badge&logo=fastapi)
+![uv](https://img.shields.io/badge/uv-%23DE5FE9.svg?style=for-the-badge&logo=uv&logoColor=white)
+![Pydantic](https://img.shields.io/badge/pydantic-%23E92063.svg?style=for-the-badge&logo=pydantic&logoColor=white)
+![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
+![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
+
+
 API assíncrona para gerenciamento de comandas de consumo em restaurantes, bares e cafés. O projeto usa FastAPI, Beanie ODM e MongoDB para persistir clientes, mesas, produtos, comandas, pagamentos e documentos de produtos.
 
 ## Tecnologias
@@ -15,6 +24,12 @@ API assíncrona para gerenciamento de comandas de consumo em restaurantes, bares
 ## Modelo de Dados
 
 ```mermaid
+---
+config:
+  layout: elk
+  look: classic
+id: d6a7ca8b-d6b9-4dea-8dc0-fd76af0e2cdf
+---
 erDiagram
     Client ||--o{ Command : "abre"
     Table ||--o{ Command : "recebe"
@@ -22,6 +37,7 @@ erDiagram
     Product ||--o{ ItemCommand : "vendido_em"
     Product ||--o{ Document : "possui"
     Command ||--o{ Payment : "recebe"
+    Client ||--|| Payment : "realiza"
 
     Client {
         ObjectId id
